@@ -11,8 +11,8 @@ useDefault = true
 description = "Global allowlist"
 paths = [
     # Test files - may contain dummy secrets for testing purposes
-    '''.*test.*''',
-    '''.*spec.*''',
+#    '''.*test.*''',
+#    '''.*spec.*''',
     # Gitleaks config itself
     '''.gitleaks.toml''',
 ]
