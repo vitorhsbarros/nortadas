@@ -17,6 +17,9 @@ jobs:
         uses: gitleaks/gitleaks-action@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_ENABLE_UPLOAD_ARTIFACT: true
+        with:
+          args: detect --source=. --no-git
 
   sast-semgrep:
     name: SAST (Semgrep)
