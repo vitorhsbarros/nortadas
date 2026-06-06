@@ -1,0 +1,24 @@
+# .gitleaks.toml
+# Gitleaks configuration for Nortada App
+
+title = "Nortada App - Gitleaks Config"
+
+[extend]
+# Extend the default gitleaks ruleset
+useDefault = true
+
+[allowlist]
+description = "Global allowlist"
+paths = [
+    # Test files - may contain dummy secrets for testing purposes
+    '''.*test.*''',
+    '''.*spec.*''',
+    # Gitleaks config itself
+    '''.gitleaks.toml''',
+]
+regexes = [
+    # Ignore placeholder values commonly used in docs/examples
+    '''EXAMPLE_.*''',
+    '''YOUR_.*_HERE''',
+    '''<.*>''',
+]

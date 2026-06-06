@@ -1,0 +1,40 @@
+name: CI/CD Nortada Pipeline
+
+on:
+  pull_request:
+
+jobs:
+  secret-scan:
+    name: Secret Scanning (Gitleaks)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Run Gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  sast-semgrep:
+    name: SAST (Semgrep)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Placeholder
+        run: echo "SAST stage - coming in Phase 1"
+
+  build-and-test-with-coverage:
+    name: Build and Test with Coverage
+    runs-on: ubuntu-latest
+    steps:
+      - name: Placeholder
+        run: echo "Build and Test with Coverage Stage - coming in Phase 1"
+
+  sca:
+    name: Software Composition Analysis
+    runs-on: ubuntu-latest
+    steps:
+      - name: Placeholder
+        run: echo "SCA Dependency Check - coming in Phase 2"
