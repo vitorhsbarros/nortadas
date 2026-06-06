@@ -1,0 +1,58 @@
+@startuml
+title Nortadas - Object Oriented Analysis
+
+'Formatting
+
+skinparam monochrome false
+skinparam defaultFontName Futura
+skinparam objectFontSize 20
+skinparam backgroundColor #adb5bd
+skinparam ArrowFontColor #141414
+skinparam ArrowColor #141414
+skinparam ArrowFontSize 14
+skinparam ArrowFontName Futura
+skinparam ArrowThickness 2
+skinparam class {
+    FontSize 30
+    BackgroundColor #4c6ef5
+    FontColor #ffffff
+    BorderColor #4c6ef5
+    HeaderBackgroundColor #4c6ef5
+}
+skinparam noteBackgroundColor #4c6ef5
+skinparam noteFontColor #ffffff
+skinparam noteBorderColor #4c6ef5
+skinparam style strictuml
+skinparam classAttributeIconSize 0
+
+'Concepts
+
+class User
+class Beach
+class WindReading
+class Comment
+class FavouriteBeaches
+class Vote
+class NortadaStatus
+class Region
+
+
+'Relations
+
+User "1" --> "*" Beach : > consults
+User "1" --> "1" FavouriteBeaches : > has
+User "1" --> "*" Comment : > writes
+User "1" --> "*" Vote : > casts
+note on link : one per comment
+
+FavouriteBeaches "1" o-- "*" Beach : > aggregates
+
+NortadaStatus "1" --> "1" WindReading : > derived from
+
+Beach "1" o-- "*" Comment : > contains
+Beach "1" --> "1" NortadaStatus : > has
+Beach "1" --> "1" Region : > located in
+
+Comment "1" o-- "*" Vote : > has
+
+@enduml
