@@ -203,3 +203,7 @@ gradle-app.setting
 application.yml
 application-*.yml
 *.env
+
+### Claude Code ###
+.claude/settings.local.json
+.claude/skills/*-workspace/

@@ -1,0 +1,23 @@
+{
+  "skill_name": "gh-issue",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Can you draft a GitHub issue for refactoring the Beach class into a proper aggregate root? It should reference the OOA/OOD docs, and break out identity handling and the repository refactor as separate sub-issues before you create anything.",
+      "expected_output": "A previewed (not yet created) parent issue titled something like 'Refactor Beach into an Aggregate Root', body using the exact ### description / ### sub-issues: / ### Acceptance Criteria structure, acceptance criteria phrased as concrete checkable conditions, and 2+ sub-issue titles listed (e.g. define Beach identity, refactor repository) with the skill asking for confirmation before creating anything.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "File an issue for US009 from the user stories doc, weather data integration with Open-Meteo. Keep it simple, no need to break it into sub-issues.",
+      "expected_output": "The skill reads docs/user-stories/nortada_phase1a_user_stories.md to get US009's actual wording, drafts a parent issue referencing US009 with the description/acceptance-criteria structure, omits the sub-issues section entirely (not left as an empty header), and asks for confirmation before creating.",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "NortadaStatus and WeatherReading are just empty stub classes right now with no fields at all. Open a tech-debt issue about that and split it into one sub-issue per class.",
+      "expected_output": "The skill inspects app/src/main/java/com/nortadas/domain/NortadaStatus.java and WeatherReading.java to confirm they're empty stubs, drafts a parent issue describing the tech debt with the standard template, lists exactly two sub-issues (one per class), and previews everything asking for confirmation before creating.",
+      "files": []
+    }
+  ]
+}
