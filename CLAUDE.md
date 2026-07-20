@@ -22,7 +22,11 @@ All commands run from the `nortadas/` project root (the Gradle root project) usi
   (a leftover from `gradle init`), but the real class is `com.nortadas.App`. This must be fixed before `run` works.
 
 Dependency versions (Guava, JUnit Jupiter) are managed centrally in `gradle/libs.versions.toml`, not in
-`app/build.gradle` directly. Lombok is used for domain models (`@Getter`, `@EqualsAndHashCode`, `@Value`).
+`app/build.gradle` directly. The **domain (business rules) layer must be pure Java — no frameworks, and
+no Lombok** (see `docs/architecture.md` §3.1); hand-write constructors, getters, and `equals`/`hashCode`
+there. Lombok is fine in other layers (JPA entities, DTOs, adapters). Note: the current domain classes
+(`Beach`, `Name`, `Region`, …) still use Lombok (`@Getter`, `@EqualsAndHashCode`, `@Value`) and are
+pending migration to plain Java.
 
 ## Architecture notes
 
