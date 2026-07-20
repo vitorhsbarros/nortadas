@@ -59,14 +59,19 @@
 ---
 
 ## US010 — Nortada Detection Logic
-*As a developer, I want a service that determines whether the Nortada is active for a given beach, so that the app can display an accurate yes/no indicator.*
+*As a developer, I want a service that grades how strong the Nortada is for a given beach, so that the app can display an accurate intensity indicator.*
 
 **Acceptance Criteria:**
-- Wind direction between 315° and 45° (N to NNW) is considered Nortada
-- Sustained wind speed above 15 km/h is required
+- Wind direction between 315° and 45° (N to NNW) is the gate for a Nortada; wind outside this sector is always `NONE`
+- Within the sector, sustained wind speed grades the reading into one of the five `NortadaStatus` levels:
+  - `NONE` — off-sector, or sustained speed below 15 km/h
+  - `LIGHT` — 15 to below 25 km/h
+  - `MODERATE` — 25 to below 40 km/h
+  - `STRONG` — 40 to below 55 km/h
+  - `SEVERE` — 55 km/h or above
 - Detection logic is encapsulated in a dedicated service class
-- Logic is covered by unit tests (JUnit 5)
-- Off-season months (October–April) return a distinct status (e.g. `OUT_OF_SEASON`)
+- Logic is covered by unit tests (JUnit 5), including the boundary values between levels
+- Detection runs year-round; no calendar-based exclusion of any months
 
 ---
 
