@@ -29,11 +29,17 @@ skinparam classAttributeIconSize 0
 
 class User
 class Beach
-class WindReading
+class WeatherReading
 class Comment
 class FavouriteBeaches
 class Vote
-class NortadaStatus
+enum NortadaStatus {
+    NONE
+    LIGHT
+    MODERATE
+    STRONG
+    SEVERE
+}
 class Region
 
 
@@ -47,7 +53,7 @@ note on link : one per comment
 
 FavouriteBeaches "1" o-- "*" Beach : > aggregates
 
-NortadaStatus "1" --> "1" WindReading : > derived from
+NortadaStatus "1" --> "1" WeatherReading : > derived from
 
 Beach "1" o-- "*" Comment : > contains
 Beach "1" --> "1" NortadaStatus : > has

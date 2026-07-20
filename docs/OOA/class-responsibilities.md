@@ -18,10 +18,11 @@ not design — no attributes, method signatures, or package placement here; see 
   taken for, and when it was fetched. Is the sole source of truth a `NortadaStatus` is derived
   from — it does not decide the status itself.
 
-- **NortadaStatus** — knows the classification derived from a `WeatherReading` (active or
-  inactive, per US010's rules, evaluated year-round). Represents the *result* of the detection
-  rule, not the rule itself — the rule lives in a dedicated detection service (see
-  `docs/architecture.md` §1, domain services).
+- **NortadaStatus** — knows the graded classification derived from a `WeatherReading` — one of
+  `NONE`, `LIGHT`, `MODERATE`, `STRONG`, or `SEVERE`, reflecting how strong the Nortada is —
+  evaluated year-round per US010's rules. Represents the *result* of the detection rule, not the
+  rule itself — the rule lives in a dedicated detection service (see `docs/architecture.md` §1,
+  domain services).
 
 - **FavouriteBeaches** — knows which `Beach`es a single `User` has favourited. Aggregates
   references to `Beach`, it does not own or duplicate `Beach` data.
