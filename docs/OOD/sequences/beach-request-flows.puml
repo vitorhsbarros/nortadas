@@ -1,0 +1,103 @@
+@startuml
+title Nortadas - Request Flows: GET /api/beaches and GET /api/beaches/{id}
+
+'Formatting
+skinparam monochrome false
+skinparam defaultFontName Futura
+skinparam backgroundColor #adb5bd
+skinparam ArrowFontColor #141414
+skinparam ArrowColor #141414
+skinparam ArrowFontSize 13
+skinparam ArrowThickness 2
+skinparam sequence {
+    ParticipantBackgroundColor #4c6ef5
+    ParticipantFontColor #ffffff
+    ParticipantBorderColor #364fc7
+    ActorBackgroundColor #4c6ef5
+    ActorFontColor #ffffff
+    LifeLineBorderColor #364fc7
+    LifeLineBackgroundColor #dbe4ff
+}
+skinparam note {
+    BackgroundColor #4c6ef5
+    FontColor #ffffff
+    BorderColor #364fc7
+}
+
+actor "Mobile client" as Client
+participant "BeachController\n<<web>>" as Controller
+participant "GetBeachListUseCase\n<<application>>" as ListUC
+participant "GetBeachDetailUseCase\n<<application>>" as DetailUC
+participant "BeachRepositoryPort\n<<port>>" as BeachRepo
+participant "WeatherReadingRepositoryPort\n<<port>>" as ReadingRepo
+participant "NortadaDetectionService\n<<domain>>" as Detection
+participant "BeachDtoMapper\n<<web>>" as Mapper
+
+== List: GET /api/beaches?page=0&size=20 ==
+
+Client -> Controller : GET /api/beaches?page=0&size=20
+activate Controller
+Controller -> ListUC : getBeaches(PageRequest(0,20))
+activate ListUC
+
+ListUC -> BeachRepo : findAll(page)
+activate BeachRepo
+BeachRepo --> ListUC : Page<Beach>
+deactivate BeachRepo
+
+loop for each Beach in page
+    ListUC -> ReadingRepo : latestForBeach(beachId)
+    activate ReadingRepo
+    ReadingRepo --> ListUC : Optional<WeatherReading>
+    deactivate ReadingRepo
+    ListUC -> Detection : detect(latestReading)
+    activate Detection
+    Detection --> ListUC : NortadaStatus
+    deactivate Detection
+end
+
+ListUC --> Controller : Page<BeachStatusView>
+deactivate ListUC
+Controller -> Mapper : toListResponse(page)
+activate Mapper
+Mapper --> Controller : BeachListResponse (HAL+JSON,\n_embedded + _links self/first/prev/next/last)
+deactivate Mapper
+Controller --> Client : 200 OK application/hal+json
+deactivate Controller
+
+note over Controller, Client : 500 Internal Server Error on unexpected failure (US011)
+
+== Detail: GET /api/beaches/{id} ==
+
+Client -> Controller : GET /api/beaches/{id}
+activate Controller
+Controller -> DetailUC : getBeach(BeachId(id))
+activate DetailUC
+DetailUC -> BeachRepo : findById(id)
+activate BeachRepo
+BeachRepo --> DetailUC : Optional<Beach>
+deactivate BeachRepo
+
+alt beach not found
+    DetailUC --> Controller : throws BeachNotFoundException
+    Controller --> Client : 404 Not Found
+else beach found
+    DetailUC -> ReadingRepo : latestForBeach(id)
+    activate ReadingRepo
+    ReadingRepo --> DetailUC : Optional<WeatherReading>
+    deactivate ReadingRepo
+    DetailUC -> Detection : detect(latestReading)
+    activate Detection
+    Detection --> DetailUC : NortadaStatus
+    deactivate Detection
+    DetailUC --> Controller : BeachStatusView
+    Controller -> Mapper : toResponse(view)
+    activate Mapper
+    Mapper --> Controller : BeachResponse (HAL+JSON,\n_links self + collection)
+    deactivate Mapper
+    Controller --> Client : 200 OK application/hal+json
+end
+deactivate DetailUC
+deactivate Controller
+
+@enduml

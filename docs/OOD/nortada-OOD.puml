@@ -1,0 +1,388 @@
+@startuml
+title Nortadas - Object Oriented Design (Class Diagram)
+
+'Formatting
+
+skinparam monochrome false
+skinparam defaultFontName Futura
+skinparam backgroundColor #adb5bd
+skinparam ArrowFontColor #141414
+skinparam ArrowColor #141414
+skinparam ArrowFontSize 12
+skinparam ArrowFontName Futura
+skinparam ArrowThickness 2
+skinparam classAttributeIconSize 0
+skinparam packageStyle rectangle
+skinparam class {
+    FontSize 15
+    BackgroundColor #4c6ef5
+    FontColor #ffffff
+    BorderColor #364fc7
+    HeaderBackgroundColor #364fc7
+    AttributeFontColor #ffffff
+    StereotypeFontColor #dbe4ff
+}
+skinparam package {
+    BorderColor #141414
+    FontColor #141414
+    FontSize 18
+    BackgroundColor #ced4da
+}
+skinparam note {
+    BackgroundColor #4c6ef5
+    FontColor #ffffff
+    BorderColor #364fc7
+}
+
+' =====================================================================
+' Legend: this diagram makes the three-model separation explicit
+'   - domain      : pure Java business objects + domain services (no framework)
+'   - application : use cases (facades) + outbound ports (interfaces only)
+'   - infrastructure : JPA entities, mappers, adapters implementing ports
+'   - web         : controllers + HAL+JSON DTOs + domain->DTO mappers
+' Dependencies point inward only (see docs/architecture.md sections 1-2).
+' =====================================================================
+
+package "domain" #dee2e6 {
+
+    package "domain.valueobject" #e9ecef {
+        class Name {
+            - value : String
+            + Name(value : String)
+            + getValue() : String
+            + equals(o : Object) : boolean
+            + hashCode() : int
+        }
+        class BeachId {
+            - value : UUID
+            + BeachId(value : UUID)
+            + {static} newId() : BeachId
+            + getValue() : UUID
+        }
+        class Latitude {
+            - value : double
+            + Latitude(value : double)
+            + getValue() : double
+        }
+        class Longitude {
+            - value : double
+            + Longitude(value : double)
+            + getValue() : double
+        }
+        class WindSpeed {
+            - kmh : double
+            + WindSpeed(kmh : double)
+            + getKmh() : double
+        }
+        class WindDirection {
+            - degrees : double
+            + WindDirection(degrees : double)
+            + getDegrees() : double
+            + isWithinSector(from : double, to : double) : boolean
+        }
+    }
+
+    class Region {
+        - regionId : UUID
+        - name : Name
+        + Region(name : Name)
+        + getRegionId() : UUID
+        + getName() : Name
+    }
+
+    class Beach {
+        - beachId : BeachId
+        - name : Name
+        - latitude : Latitude
+        - longitude : Longitude
+        - region : Region
+        + Beach(beachId : BeachId, name : Name, latitude : Latitude, longitude : Longitude, region : Region)
+        + getBeachId() : BeachId
+        + getName() : Name
+        + getLatitude() : Latitude
+        + getLongitude() : Longitude
+        + getRegion() : Region
+    }
+
+    class WeatherReading {
+        - weatherReadingId : UUID
+        - beachId : BeachId
+        - windSpeed : WindSpeed
+        - windDirection : WindDirection
+        - temperature : double
+        - fetchedAt : LocalDateTime
+        + WeatherReading(beachId : BeachId, windSpeed : WindSpeed, windDirection : WindDirection, temperature : double, fetchedAt : LocalDateTime)
+        + getBeachId() : BeachId
+        + getWindSpeed() : WindSpeed
+        + getWindDirection() : WindDirection
+        + getFetchedAt() : LocalDateTime
+    }
+
+    enum NortadaStatus {
+        NONE
+        LIGHT
+        MODERATE
+        STRONG
+        SEVERE
+        + isNortada() : boolean
+    }
+
+    interface NortadaDetectionStrategy <<interface>> {
+        + detect(reading : WeatherReading) : NortadaStatus
+    }
+
+    class SectorSpeedDetectionStrategy {
+        + detect(reading : WeatherReading) : NortadaStatus
+    }
+
+    class NortadaDetectionService {
+        - strategy : NortadaDetectionStrategy
+        + NortadaDetectionService(strategy : NortadaDetectionStrategy)
+        + detect(reading : WeatherReading) : NortadaStatus
+    }
+
+    ' out-of-scope-for-phase-1 stubs (present in domain today)
+    class User <<stub>> {
+        - userId : UUID
+        - name : Name
+        - email : Email
+    }
+    class FavouriteBeaches <<stub>>
+}
+
+package "application" #dee2e6 {
+
+    package "application.port" #e9ecef {
+        interface BeachRepositoryPort <<interface>> {
+            + findAll(page : PageRequest) : Page<Beach>
+            + findById(id : BeachId) : Optional<Beach>
+        }
+        interface WeatherReadingRepositoryPort <<interface>> {
+            + save(reading : WeatherReading) : WeatherReading
+            + latestForBeach(id : BeachId) : Optional<WeatherReading>
+        }
+        interface WeatherClientPort <<interface>> {
+            + fetchCurrent(lat : Latitude, lon : Longitude) : WeatherReading
+        }
+    }
+
+    package "application.usecase" #e9ecef {
+        class GetBeachListUseCase <<facade>> {
+            - beaches : BeachRepositoryPort
+            - readings : WeatherReadingRepositoryPort
+            - detection : NortadaDetectionService
+            + getBeaches(page : PageRequest) : Page<BeachStatusView>
+        }
+        class GetBeachDetailUseCase <<facade>> {
+            - beaches : BeachRepositoryPort
+            - readings : WeatherReadingRepositoryPort
+            - detection : NortadaDetectionService
+            + getBeach(id : BeachId) : BeachStatusView
+        }
+        class FetchWeatherUseCase <<facade>> {
+            - beaches : BeachRepositoryPort
+            - client : WeatherClientPort
+            - readings : WeatherReadingRepositoryPort
+            - detection : NortadaDetectionService
+            + fetchAllBeaches() : void
+        }
+        class BeachStatusView <<result>> {
+            + beach : Beach
+            + latestReading : WeatherReading
+            + status : NortadaStatus
+        }
+    }
+}
+
+package "infrastructure" #dee2e6 {
+
+    package "infrastructure.persistence.entity" #e9ecef {
+        class BeachEntity <<@Entity>> {
+            - id : UUID
+            - name : String
+            - latitude : double
+            - longitude : double
+            - region : RegionEntity
+        }
+        class RegionEntity <<@Entity>> {
+            - id : UUID
+            - name : String
+        }
+        class WeatherReadingEntity <<@Entity>> {
+            - id : UUID
+            - beachId : UUID
+            - windSpeed : double
+            - windDirection : double
+            - temperature : double
+            - fetchedAt : LocalDateTime
+        }
+    }
+
+    package "infrastructure.persistence.mapper" #e9ecef {
+        class BeachPersistenceMapper <<mapper>> {
+            + toDomain(e : BeachEntity) : Beach
+            + toEntity(b : Beach) : BeachEntity
+        }
+        class WeatherReadingPersistenceMapper <<mapper>> {
+            + toDomain(e : WeatherReadingEntity) : WeatherReading
+            + toEntity(r : WeatherReading) : WeatherReadingEntity
+        }
+    }
+
+    package "infrastructure.persistence.repository" #e9ecef {
+        interface BeachJpaRepository <<Spring Data>> {
+            + findAll(p : Pageable) : Page<BeachEntity>
+            + findById(id : UUID) : Optional<BeachEntity>
+        }
+        class BeachRepositoryAdapter <<adapter>> {
+            - jpa : BeachJpaRepository
+            - mapper : BeachPersistenceMapper
+            + findAll(page : PageRequest) : Page<Beach>
+            + findById(id : BeachId) : Optional<Beach>
+        }
+        interface WeatherReadingJpaRepository <<Spring Data>>
+        class WeatherReadingRepositoryAdapter <<adapter>> {
+            - jpa : WeatherReadingJpaRepository
+            - mapper : WeatherReadingPersistenceMapper
+            + save(reading : WeatherReading) : WeatherReading
+            + latestForBeach(id : BeachId) : Optional<WeatherReading>
+        }
+    }
+
+    package "infrastructure.weather" #e9ecef {
+        class OpenMeteoClientAdapter <<adapter>> {
+            - http : RestClient
+            - baseUrl : String
+            + fetchCurrent(lat : Latitude, lon : Longitude) : WeatherReading
+        }
+    }
+}
+
+package "web" #dee2e6 {
+
+    package "web.controller" #e9ecef {
+        class BeachController <<@RestController>> {
+            - listUseCase : GetBeachListUseCase
+            - detailUseCase : GetBeachDetailUseCase
+            - mapper : BeachDtoMapper
+            + list(page : int, size : int) : BeachListResponse
+            + detail(id : UUID) : BeachResponse
+        }
+    }
+
+    package "web.dto" #e9ecef {
+        class BeachResponse <<DTO/HAL>> {
+            + id : UUID
+            + name : String
+            + region : String
+            + nortadaStatus : String
+            + _links : Map<String, Link>
+        }
+        class BeachListResponse <<DTO/HAL>> {
+            + _embedded : List<BeachResponse>
+            + page : PageMetadata
+            + _links : Map<String, Link>
+        }
+        class WeatherReadingResponse <<DTO/HAL>> {
+            + windSpeed : double
+            + windDirection : double
+            + temperature : double
+            + fetchedAt : String
+        }
+    }
+
+    package "web.mapper" #e9ecef {
+        class BeachDtoMapper <<mapper>> {
+            + toResponse(view : BeachStatusView) : BeachResponse
+            + toListResponse(page : Page<BeachStatusView>) : BeachListResponse
+        }
+    }
+}
+
+package "scheduler" #dee2e6 {
+    class WeatherDataScheduler <<driving adapter>> {
+        - fetchWeather : FetchWeatherUseCase
+        + runHourly() : void
+    }
+}
+
+package "config" #dee2e6 {
+    class AppConfig <<@Configuration>> {
+        + beachRepositoryPort(...) : BeachRepositoryPort
+        + weatherClientPort(...) : WeatherClientPort
+        + nortadaDetectionService(...) : NortadaDetectionService
+    }
+}
+
+' ---- Domain relationships ----
+Beach --> Region : located in
+Beach --> BeachId
+Beach --> Name
+Beach --> Latitude
+Beach --> Longitude
+Region --> Name
+WeatherReading --> BeachId
+WeatherReading --> WindSpeed
+WeatherReading --> WindDirection
+NortadaDetectionService --> NortadaDetectionStrategy : delegates (Strategy)
+SectorSpeedDetectionStrategy ..|> NortadaDetectionStrategy
+NortadaDetectionStrategy ..> NortadaStatus : returns
+NortadaDetectionStrategy ..> WeatherReading : reads
+User --> FavouriteBeaches : has
+FavouriteBeaches o-- "*" Beach : aggregates
+
+' ---- Application depends on domain + ports (inward only) ----
+GetBeachListUseCase ..> BeachRepositoryPort
+GetBeachListUseCase ..> WeatherReadingRepositoryPort
+GetBeachListUseCase ..> NortadaDetectionService
+GetBeachListUseCase ..> BeachStatusView
+GetBeachDetailUseCase ..> BeachRepositoryPort
+GetBeachDetailUseCase ..> WeatherReadingRepositoryPort
+GetBeachDetailUseCase ..> NortadaDetectionService
+FetchWeatherUseCase ..> BeachRepositoryPort
+FetchWeatherUseCase ..> WeatherClientPort
+FetchWeatherUseCase ..> WeatherReadingRepositoryPort
+FetchWeatherUseCase ..> NortadaDetectionService
+
+' ---- Infrastructure implements ports (Adapter + Repository) ----
+BeachRepositoryAdapter ..|> BeachRepositoryPort
+BeachRepositoryAdapter --> BeachJpaRepository
+BeachRepositoryAdapter --> BeachPersistenceMapper
+WeatherReadingRepositoryAdapter ..|> WeatherReadingRepositoryPort
+WeatherReadingRepositoryAdapter --> WeatherReadingJpaRepository
+WeatherReadingRepositoryAdapter --> WeatherReadingPersistenceMapper
+OpenMeteoClientAdapter ..|> WeatherClientPort
+BeachPersistenceMapper ..> Beach
+BeachPersistenceMapper ..> BeachEntity
+BeachJpaRepository ..> BeachEntity
+WeatherReadingJpaRepository ..> WeatherReadingEntity
+
+' ---- Web depends on application + DTOs (Adapter/Controller) ----
+BeachController --> GetBeachListUseCase
+BeachController --> GetBeachDetailUseCase
+BeachController --> BeachDtoMapper
+BeachDtoMapper ..> BeachStatusView
+BeachDtoMapper ..> BeachResponse
+BeachDtoMapper ..> BeachListResponse
+BeachResponse *-- WeatherReadingResponse
+
+' ---- Scheduler + config wiring ----
+WeatherDataScheduler --> FetchWeatherUseCase
+AppConfig ..> BeachRepositoryAdapter
+AppConfig ..> OpenMeteoClientAdapter
+AppConfig ..> NortadaDetectionService
+
+note as N1
+  Three models, mapped at boundaries (architecture.md section 3):
+  domain.Beach  !=  persistence.BeachEntity  !=  web.dto.BeachResponse
+  Mappers (Pure Fabrication) translate between them; no shared inheritance.
+end note
+
+note as N2
+  Design-only value objects (BeachId, Latitude, Longitude, WindSpeed,
+  WindDirection, Email) and design-layer classes are pending scaffolding
+  in US007. Only Beach, Region, Name, WeatherReading, NortadaStatus,
+  FavouriteBeaches exist in domain/ today (as stubs / Lombok, per CLAUDE.md).
+end note
+
+@enduml
