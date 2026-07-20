@@ -12,7 +12,7 @@ Dependencies only point inward. Outer layers depend on inner layers through inte
 
 | Layer | Contains | Depends on |
 |---|---|---|
-| **Domain** | Entities, value objects, domain services (`Beach`, `Region`, `WeatherReading`, `NortadaStatus`, `NortadaDetectionService`) | nothing — no Spring, no JPA, no HTTP |
+| **Domain** | Entities, value objects, domain services (`Beach`, `Region`, `WeatherReading`, `NortadaStatus`, `NortadaDetectionService`) | nothing — pure Java, no framework of any kind (see §3.1) |
 | **Application** | Use cases that orchestrate domain objects; outbound **ports** (interfaces) the use cases need, e.g. `BeachRepositoryPort`, `WeatherClientPort` | Domain only |
 | **Interface Adapters** | Inbound: Spring `@RestController`s, DTOs, mappers. Outbound: JPA repository adapters, Open-Meteo HTTP client adapter, entity mappers | Application (implements its ports) |
 | **Frameworks & Drivers** | Spring Boot, Spring Data JPA/Hibernate, PostgreSQL, the scheduler trigger, `application.yml` | Everything (wires it together) |
@@ -54,11 +54,28 @@ A recurring Clean Architecture mistake is letting one class serve two layers. Th
 three distinct model types, mapped explicitly at the boundaries:
 
 - **Domain object** (`domain/`) — pure business object, enforces its own invariants (as `Name`,
-  `Region` already do), no persistence or serialization annotations.
+  `Region` already do). Pure Java only — see §3.1.
 - **Data model / ORM entity** (`infrastructure/persistence/entity/`) — `@Entity` classes shaped
   for Hibernate/JPA. Can be denormalized or structured differently from the domain object.
 - **DTO** (`web/dto/`) — wire format returned to clients, shaped for the API contract (HAL+JSON,
   `_links`, pagination), independent of both the domain and the entity.
+
+### 3.1 The domain layer is pure Java — no frameworks, including Lombok
+
+The `domain/` layer (business rules) must have **zero framework dependencies of any kind**. No
+Spring, no JPA/Hibernate, no Jackson, no HTTP client — and **no Lombok**. Domain classes hand-write
+their constructors (where they already enforce invariants), getters, `equals`/`hashCode`, and
+`toString` in plain Java rather than generating them with `@Getter`/`@Value`/`@Data` etc.
+
+The point is that the business rules stay independent of every tool the project happens to use
+today: a domain class should read the same, and compile, if Spring and Lombok were removed from the
+build tomorrow. Lombok is a compile-time annotation processor — convenient, but still an external
+dependency the domain would be coupled to, so it's excluded here on the same principle as the rest.
+
+**This ban is scoped to `domain/` only.** Every other layer may use frameworks freely — Lombok in
+`infrastructure/persistence/entity` JPA entities, `web/dto` DTOs, adapters, and config is fine and
+encouraged where it cuts boilerplate. Purity is a property we buy for the business rules
+specifically, not a project-wide style rule.
 
 Mapping between them is an explicit, testable step (`mapper` classes) — never shared inheritance,
 never a "smart" object doing double duty.

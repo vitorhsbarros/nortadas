@@ -43,10 +43,16 @@ existing code just because it's visible in context. Skip a category entirely if 
 diff touches it (e.g. no persistence changes → say nothing about persistence) rather than forcing
 a comment to fill out the list.
 
-- **Layering (Clean Architecture)** — does anything in `domain/` import Spring, JPA, Jackson, or
-  an HTTP client? Does `application/` reach into `infrastructure/` or `web/` directly instead of
-  through an `application/port` interface? Does a controller contain business logic instead of
-  just translating HTTP ↔ a use case call?
+- **Domain purity (`domain/` only)** — the domain layer must be pure Java with **zero framework
+  dependencies** (`docs/architecture.md` §3.1). Flag *any* framework import or annotation on a
+  `domain/` class: Spring, JPA/Hibernate, Jackson, an HTTP client — **and Lombok**
+  (`@Getter`, `@Setter`, `@Data`, `@Value`, `@Builder`, `@AllArgsConstructor`, etc.). A
+  Lombok-annotated domain class is a violation even though it compiles and "works." This check
+  applies to `domain/` alone — Lombok and frameworks in `infrastructure/`, `web/`, and other layers
+  are fine, so don't flag them there.
+- **Layering (Clean Architecture)** — does `application/` reach into `infrastructure/` or `web/`
+  directly instead of through an `application/port` interface? Does a controller contain business
+  logic instead of just translating HTTP ↔ a use case call?
 - **Three models, never mixed** — is a JPA `@Entity` type leaking into `domain/` or getting
   returned straight from a controller? Is a domain object being serialized directly as an API
   response instead of going through a `web/dto` type? Is there a new type that duplicates an

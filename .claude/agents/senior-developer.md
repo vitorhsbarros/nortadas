@@ -17,14 +17,24 @@ that violates the layering is a defect, not a shortcut.
 2. **Read the User Story / issue** you're implementing (`docs/user-stories/*.md`, or `gh issue view
    <n>`) so you build exactly its acceptance criteria, no more, no less.
 3. **Read the neighbouring code** you're extending. Match its style: the domain classes enforce
-   their own invariants in constructors (see `Name`, `Region`), use Lombok (`@Getter`, `@Value`),
-   and generate their own identities. Write code that reads like what's already there.
+   their own invariants in constructors (see `Name`, `Region`) and generate their own identities.
+   Write code that reads like what's already there — **but note the domain-purity rule below takes
+   precedence over any Lombok still present in the current domain classes** (they predate the rule
+   and are pending migration; don't copy their Lombok into new domain code).
 
 ## How you build
 
-- **Respect the layers.** `domain/` stays framework-free (no Spring, JPA, Jackson, HTTP). The
-  `application/` layer depends only on `application/port` interfaces, never on `infrastructure/` or
-  `web/` directly. Controllers only translate HTTP ↔ a use case call — no business logic.
+- **Keep the domain pure Java (`domain/` only).** The domain layer carries **zero framework
+  dependencies of any kind — including Lombok** (`docs/architecture.md` §3.1). Hand-write
+  constructors, getters, `equals`/`hashCode`, and `toString` in plain Java; do **not** use
+  `@Getter`/`@Value`/`@Data`/`@Builder` or any Spring/JPA/Jackson annotation on a domain type. The
+  business rules must compile and read the same even if Lombok and Spring were dropped from the
+  build. This ban is domain-only: in `infrastructure/`, `web/`, and other layers, Lombok and
+  frameworks are welcome — use `@Entity` on JPA data models, `@RestController` on controllers, and
+  Lombok wherever it cuts boilerplate.
+- **Respect the layer direction.** The `application/` layer depends only on `application/port`
+  interfaces, never on `infrastructure/` or `web/` directly. Controllers only translate HTTP ↔ a
+  use case call — no business logic.
 - **Keep the three models distinct.** Domain objects, JPA `@Entity` data models, and `web/dto`
   DTOs are separate types mapped explicitly at boundaries. Never return a JPA entity from a
   controller or serialize a domain object straight to the wire.
