@@ -14,9 +14,19 @@ problem, which correctness review naturally misses because the code "works fine.
 
 ### 1. Get the diff
 
-- PR review: `gh pr diff <number>`
-- Working diff (no PR number given): `git diff` against the base branch, or `git diff --staged`
-  if the user has already staged their changes — ask if it's ambiguous which one they mean.
+- **PR review:** `gh pr diff <number>`.
+- **Working diff (no PR number given):** this skill's whole point is reviewing *new* classes, so
+  be careful not to miss them — a plain `git diff` shows only tracked, unstaged changes and will
+  silently skip both staged changes and brand-new untracked files (a fresh `BeachController.java`
+  won't appear at all). To see everything the branch actually adds:
+  - Committed work on a branch: `git diff <base>...HEAD` (three dots — the branch's changes since
+    it diverged from base), where `<base>` is the default branch unless the user says otherwise.
+  - Staged but uncommitted work: `git diff --staged`.
+  - Untracked new files: `git status --porcelain` to list them, then read each one directly — they
+    are the most important thing to review and appear in no `git diff`.
+
+  If it's ambiguous which of these the user means (working tree vs. a pushed branch), ask rather
+  than guessing — the diff confusion is easy to get wrong.
 
 ### 2. Read the current rules fresh
 

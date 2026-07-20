@@ -74,6 +74,21 @@ gh pr create --repo vitorhsbarros/nortadas --base <base> --head <head> --title "
 
 Relay the resulting PR URL back to the user.
 
+### 7. Updating an existing open PR
+
+When more commits land on a branch that already has an open PR, the PR's diff and commit list
+update on their own — but the **body does not**, so a Summary/Related-issues/Test-plan written for
+the earlier state goes stale and starts misleading reviewers. When asked to refresh a PR (or when
+you've just pushed commits to a branch with an open PR), redo steps 2–4 against the *current*
+`git log <base>..<head>` and re-render the body, then:
+
+```bash
+gh pr edit <number> --repo vitorhsbarros/nortadas --title "<title>" --body "<body>"
+```
+
+Find the PR number for the current branch with `gh pr view --json number -q .number` if you don't
+already have it. Same confirmation rule as creation — show the new body first.
+
 ## Notes
 
 - Target repo is always `vitorhsbarros/nortadas`.

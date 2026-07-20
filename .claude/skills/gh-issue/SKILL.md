@@ -97,6 +97,13 @@ relay those links back to the user.
 `labels` defaults to none — only pass labels the user actually asked for, this project doesn't have
 a fixed label set to apply automatically.
 
+A label must already exist on the repo before it can be applied — `gh issue create --label X`
+(and therefore the whole script, under `set -euo pipefail`) fails outright if `X` isn't defined,
+creating nothing. When the user asks for a label, first check it exists with
+`gh label list --repo vitorhsbarros/nortadas`; if it's missing, create it first
+(`gh label create "X" --repo vitorhsbarros/nortadas --description "..." --color "RRGGBB"`) or ask
+the user, rather than letting the creation fail midway.
+
 ## Notes
 
 - Target repo is always `vitorhsbarros/nortadas` — no need to ask.

@@ -22,6 +22,11 @@ change is traceable to the issue that motivated it:
 
 The issue reference is **mandatory on every commit** — never write a commit without one.
 
+A single commit may reference more than one issue — most commonly when it finishes a sub-issue and
+thereby also completes its parent. Repeat the keyword per issue, comma-separated:
+`… , closes #22, closes #19`. Keywords can be mixed too (`… , closes #22, refs #19`) when the
+commit resolves one issue but only advances another.
+
 ## Workflow
 
 1. **Pick the type from the actual diff, not the user's phrasing.** Look at what changed:
@@ -48,6 +53,7 @@ The issue reference is **mandatory on every commit** — never write a commit wi
 - `feature: add beach list API endpoint, refs #16`
 - `documentation: add Clean Architecture rules to docs/architecture.md, closes #11`
 - `refactor: split BeachRepository into port and JPA adapter, refs #12`
+- `feature: add commit-message skill enforcing commit format, closes #22, closes #19` (finishes a sub-issue and its parent)
 
 ## Notes
 
