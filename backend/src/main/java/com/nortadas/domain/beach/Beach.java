@@ -1,5 +1,6 @@
 package com.nortadas.domain.beach;
 
+import com.nortadas.domain.municipality.Municipality;
 import com.nortadas.domain.region.Region;
 import com.nortadas.domain.valueobject.BeachId;
 import com.nortadas.domain.valueobject.Latitude;
@@ -8,7 +9,8 @@ import com.nortadas.domain.valueobject.Name;
 
 /**
  * A Portuguese coastal beach. Knows its own identity, name, geographic location
- * and the {@link Region} it belongs to.
+ * and the {@link Municipality} it belongs to (and, through it, the
+ * {@link Region} it belongs to).
  *
  * <p>The weather-reading history and the derivation of the current
  * {@link NortadaStatus} arrive with US009/US010 (see
@@ -30,15 +32,15 @@ public class Beach {
     private final Name name;
     private final Latitude latitude;
     private final Longitude longitude;
-    private final Region region;
+    private final Municipality municipality;
 
     /** Creates a new beach, generating its own identity. */
-    Beach(Name name, Latitude latitude, Longitude longitude, Region region) {
-        this(BeachId.newId(), name, latitude, longitude, region);
+    Beach(Name name, Latitude latitude, Longitude longitude, Municipality municipality) {
+        this(BeachId.newId(), name, latitude, longitude, municipality);
     }
 
     /** Rehydrates a beach with a known identity (e.g. loaded from persistence). */
-    Beach(BeachId beachId, Name name, Latitude latitude, Longitude longitude, Region region) {
+    Beach(BeachId beachId, Name name, Latitude latitude, Longitude longitude, Municipality municipality) {
 
         if (beachId == null) {
             throw new IllegalArgumentException("Beach id cannot be null!");
@@ -56,15 +58,15 @@ public class Beach {
             throw new IllegalArgumentException("Beach longitude cannot be null!");
         }
 
-        if (region == null) {
-            throw new IllegalArgumentException("Beach region cannot be null!");
+        if (municipality == null) {
+            throw new IllegalArgumentException("Beach municipality cannot be null!");
         }
 
         this.beachId = beachId;
         this.name = name;
         this.latitude = latitude;
         this.longitude = longitude;
-        this.region = region;
+        this.municipality = municipality;
     }
 
     public BeachId getBeachId() {
@@ -83,8 +85,13 @@ public class Beach {
         return longitude;
     }
 
+    public Municipality getMunicipality() {
+        return municipality;
+    }
+
+    /** Convenience accessor: the region the beach belongs to, via its municipality. */
     public Region getRegion() {
-        return region;
+        return municipality.getRegion();
     }
 
     @Override
@@ -107,9 +114,10 @@ public class Beach {
     /**
      * Attribute-based comparison: {@code true} only when {@code other} is a beach
      * with the same identity <em>and</em> the same name, latitude, longitude and
-     * region (i.e. identical state). The region is compared by its own identity
-     * ({@link Region#equals(Object)}) — two beaches are {@code sameAs} only when
-     * they reference the same region entity.
+     * municipality (i.e. identical state). The municipality is compared by its
+     * own identity ({@link Municipality#equals(Object)}) — two beaches are
+     * {@code sameAs} only when they reference the same municipality entity,
+     * which transitively implies the same region too.
      *
      * <p>Contrast with {@link #equals(Object)}: two beaches with the same id but
      * different attributes are {@code equals} (the same entity) yet not
@@ -124,13 +132,13 @@ public class Beach {
                 && name.equals(other.name)
                 && latitude.equals(other.latitude)
                 && longitude.equals(other.longitude)
-                && region.equals(other.region);
+                && municipality.equals(other.municipality);
     }
 
     @Override
     public String toString() {
         return "Beach{beachId=" + beachId + ", name=" + name
                 + ", latitude=" + latitude + ", longitude=" + longitude
-                + ", region=" + region + "}";
+                + ", municipality=" + municipality + "}";
     }
 }

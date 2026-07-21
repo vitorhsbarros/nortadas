@@ -40,7 +40,7 @@ class SeededBeachDataTest {
     }
 
     @Test
-    void loadsASeededBeachByIdWithItsCoordinatesAndRegion() {
+    void loadsASeededBeachByIdWithItsCoordinatesMunicipalityAndRegion() {
         BeachId espinho = new BeachId(UUID.fromString("ae617359-5f5a-4f01-8952-52c51bb5e742"));
 
         Beach beach = beachRepository.findById(espinho).orElseThrow();
@@ -48,6 +48,8 @@ class SeededBeachDataTest {
         assertThat(beach.getName().getValue()).isEqualTo("Praia Central de Espinho");
         assertThat(beach.getLatitude().getDegrees()).isEqualTo(41.0083);
         assertThat(beach.getLongitude().getDegrees()).isEqualTo(-8.6428);
+        assertThat(beach.getMunicipality().getName().getValue()).isEqualTo("Espinho");
+        assertThat(beach.getMunicipality().getMunicipalityId().getValue()).isEqualTo("0107");
         assertThat(beach.getRegion().getName().getValue()).isEqualTo("Norte");
         assertThat(beach.getRegion().getRegionId().getValue()).isEqualTo("NOR");
     }

@@ -15,9 +15,9 @@ import lombok.Getter;
  * mapped to/from the pure-domain {@link com.nortadas.domain.beach.Beach} by
  * {@link com.nortadas.infrastructure.persistence.mapper.BeachMapper}.
  *
- * <p>The owning {@link RegionDataModel} is a {@code @ManyToOne} association (a
- * beach always has exactly one region), fetched eagerly because mapping to a
- * domain {@code Beach} always needs it.
+ * <p>The owning {@link MunicipalityDataModel} is a {@code @ManyToOne}
+ * association (a beach always has exactly one municipality), fetched eagerly
+ * because mapping to a domain {@code Beach} always needs it.
  */
 @Entity
 @Table(name = "beach")
@@ -38,18 +38,18 @@ public class BeachDataModel {
     private double longitude;
 
     @ManyToOne(optional = false, fetch = FetchType.EAGER)
-    @JoinColumn(name = "region_id", nullable = false)
-    private RegionDataModel region;
+    @JoinColumn(name = "municipality_id", nullable = false)
+    private MunicipalityDataModel municipality;
 
     /** Required by JPA; not for application use. */
     protected BeachDataModel() {
     }
 
-    public BeachDataModel(UUID id, String name, double latitude, double longitude, RegionDataModel region) {
+    public BeachDataModel(UUID id, String name, double latitude, double longitude, MunicipalityDataModel municipality) {
         this.id = id;
         this.name = name;
         this.latitude = latitude;
         this.longitude = longitude;
-        this.region = region;
+        this.municipality = municipality;
     }
 }
