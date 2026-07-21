@@ -1,0 +1,99 @@
+/*
+ * Nortadas backend — Spring Boot service (US007 scaffolding).
+ *
+ * Dependency versions for everything Spring manages (starters, PostgreSQL driver,
+ * Flyway, H2, JUnit) come from the Spring Boot BOM via the dependency-management
+ * plugin; plugin versions live in gradle/libs.versions.toml.
+ */
+
+plugins {
+    id 'java'
+    id 'jacoco'
+    alias(libs.plugins.spring.boot)
+    alias(libs.plugins.spring.dependency.management)
+}
+
+group = 'com.nortadas'
+version = '0.0.1-SNAPSHOT'
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    implementation 'org.springframework.boot:spring-boot-starter-security'
+    implementation 'org.springframework.boot:spring-boot-starter-hateoas'
+
+    // Flyway 10+ ships PostgreSQL support as a separate module.
+    implementation 'org.flywaydb:flyway-core'
+    implementation 'org.flywaydb:flyway-database-postgresql'
+
+    runtimeOnly 'org.postgresql:postgresql'
+
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation 'org.springframework.security:spring-security-test'
+    // In-memory DB (PostgreSQL compatibility mode) so the context-load test and
+    // the Flyway migration run in the build without a real PostgreSQL instance.
+    testRuntimeOnly 'com.h2database:h2'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
+    finalizedBy tasks.named('jacocoTestReport')
+}
+
+// Bootstrapping/config classes are exercised by the @SpringBootTest context-load
+// test but excluded from the coverage figure: measuring them meaningfully needs
+// integration machinery, and the target of the coverage gate is the domain.
+def jacocoClassExclusions = [
+        'com/nortadas/NortadasApplication.class',
+        'com/nortadas/config/**',
+        '**/package-info.class'
+]
+
+tasks.named('jacocoTestReport') {
+    dependsOn tasks.named('test')
+    reports {
+        xml.required = true
+        html.required = true
+    }
+    classDirectories.setFrom(files(classDirectories.files.collect {
+        fileTree(dir: it, exclude: jacocoClassExclusions)
+    }))
+}
+
+tasks.named('jacocoTestCoverageVerification') {
+    dependsOn tasks.named('test')
+    classDirectories.setFrom(files(classDirectories.files.collect {
+        fileTree(dir: it, exclude: jacocoClassExclusions)
+    }))
+    violationRules {
+        rule {
+            element = 'PACKAGE'
+            includes = ['com.nortadas.domain', 'com.nortadas.domain.valueobject']
+            limit {
+                counter = 'LINE'
+                value = 'COVEREDRATIO'
+                minimum = 0.95
+            }
+            limit {
+                counter = 'BRANCH'
+                value = 'COVEREDRATIO'
+                minimum = 0.95
+            }
+        }
+    }
+}
+
+tasks.named('check') {
+    dependsOn tasks.named('jacocoTestCoverageVerification')
+}
