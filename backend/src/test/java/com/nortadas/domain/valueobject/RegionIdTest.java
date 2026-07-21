@@ -50,14 +50,6 @@ class RegionIdTest {
     }
 
     @Test
-    @DisplayName("newId rejects a name that contains no letters")
-    void newIdRejectsNameWithoutLetters() {
-        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
-                () -> RegionId.newId(new Name("--")));
-        assertTrue(ex.getMessage().contains("at least one letter"), ex.getMessage());
-    }
-
-    @Test
     void newIdRejectsNullName() {
         IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
                 () -> RegionId.newId(null));

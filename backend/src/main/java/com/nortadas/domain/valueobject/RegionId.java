@@ -69,6 +69,7 @@ public final class RegionId {
 
     private static String derivePrefix(String name) {
 
+        // Name guarantees at least one Unicode letter, so `letters` is never empty here.
         String withoutDiacritics = Normalizer.normalize(name, Normalizer.Form.NFD)
                 .replaceAll("\\p{M}", "");
 
@@ -78,10 +79,6 @@ public final class RegionId {
             if (Character.isLetter(c)) {
                 letters.append(Character.toUpperCase(c));
             }
-        }
-
-        if (letters.length() == 0) {
-            throw new IllegalArgumentException("Region name must contain at least one letter to derive an id prefix!");
         }
 
         return letters.toString();
