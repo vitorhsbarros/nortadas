@@ -1,14 +1,13 @@
 package com.nortadas.domain.region;
 
-import com.nortadas.domain.beach.Beach;
 import com.nortadas.domain.valueobject.Name;
 import com.nortadas.domain.valueobject.RegionId;
-import com.nortadas.domain.valueobject.WeatherReading;
 
 /**
  * A coastal region grouping the beaches located within it (e.g. Norte, Centro,
  * Lisboa, Alentejo, Algarve). Knows its own identity and name; weather and
- * Nortada status are a {@link Beach}/{@link WeatherReading} concern.
+ * Nortada status are a {@link com.nortadas.domain.beach.Beach}/
+ * {@link com.nortadas.domain.valueobject.WeatherReading} concern.
  *
  * <p>Equality is identity-based ({@link RegionId}), as for any domain entity:
  * two regions are {@code equals} when they share an id, regardless of name. To
