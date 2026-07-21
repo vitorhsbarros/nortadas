@@ -6,6 +6,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -89,6 +90,42 @@ class RegionTest {
         Region region = new Region(new Name("Norte"));
         assertNotEquals(region, null);
         assertNotEquals(region, "Norte");
+    }
+
+    // --- attribute-based sameAs ------------------------------------------
+
+    @Test
+    @DisplayName("same id + identical name => equals AND sameAs")
+    void sameIdSameNameIsEqualAndSameAs() {
+        RegionId id = RegionId.newId(new Name("Norte"));
+        Region first = new Region(id, new Name("Norte"));
+        Region second = new Region(id, new Name("Norte"));
+        assertEquals(first, second);
+        assertTrue(first.sameAs(second));
+    }
+
+    @Test
+    @DisplayName("same id + different name => equals but NOT sameAs")
+    void sameIdDifferentNameIsEqualButNotSameAs() {
+        RegionId id = RegionId.newId(new Name("Norte"));
+        Region first = new Region(id, new Name("Norte"));
+        Region second = new Region(id, new Name("Algarve"));
+        assertEquals(first, second);
+        assertFalse(first.sameAs(second));
+    }
+
+    @Test
+    @DisplayName("different id + identical name => neither equals nor sameAs")
+    void differentIdSameNameIsNeitherEqualNorSameAs() {
+        Region first = new Region(RegionId.newId(new Name("Norte")), new Name("Norte"));
+        Region second = new Region(RegionId.newId(new Name("Norte")), new Name("Norte"));
+        assertNotEquals(first, second);
+        assertFalse(first.sameAs(second));
+    }
+
+    @Test
+    void sameAsNullIsFalse() {
+        assertFalse(new Region(new Name("Norte")).sameAs(null));
     }
 
     // --- toString --------------------------------------------------------

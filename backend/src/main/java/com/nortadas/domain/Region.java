@@ -8,7 +8,9 @@ import com.nortadas.domain.valueobject.RegionId;
  * Lisboa, Alentejo, Algarve). Knows its own identity and name; weather and
  * Nortada status are a {@link Beach}/{@link WeatherReading} concern.
  *
- * <p>Equality is identity-based ({@link RegionId}), as for any domain entity.
+ * <p>Equality is identity-based ({@link RegionId}), as for any domain entity:
+ * two regions are {@code equals} when they share an id, regardless of name. To
+ * compare descriptive state as well, use {@link #sameAs(Region)}.
  */
 public class Region {
 
@@ -62,6 +64,23 @@ public class Region {
     @Override
     public int hashCode() {
         return regionId.hashCode();
+    }
+
+    /**
+     * Attribute-based comparison: {@code true} only when {@code other} is a region
+     * with the same identity <em>and</em> the same name (i.e. identical state).
+     *
+     * <p>Contrast with {@link #equals(Object)}: two regions with the same id but
+     * different names are {@code equals} (the same entity) yet not {@code sameAs}
+     * (different state); regions with different ids are neither. Null-safe —
+     * returns {@code false} for a {@code null} argument.
+     */
+    public boolean sameAs(Region other) {
+        if (other == null) {
+            return false;
+        }
+        return regionId.equals(other.regionId)
+                && name.equals(other.name);
     }
 
     @Override

@@ -8,6 +8,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -119,6 +120,69 @@ class BeachTest {
         Beach beach = barra();
         assertNotEquals(beach, null);
         assertNotEquals(beach, "Praia da Barra");
+    }
+
+    // --- attribute-based sameAs ------------------------------------------
+
+    @Test
+    @DisplayName("same id + identical attributes => equals AND sameAs")
+    void sameIdIdenticalAttributesIsEqualAndSameAs() {
+        BeachId id = BeachId.newId();
+        Beach first = new Beach(id, NAME, LATITUDE, LONGITUDE, REGION);
+        Beach second = new Beach(id, NAME, LATITUDE, LONGITUDE, REGION);
+        assertEquals(first, second);
+        assertTrue(first.sameAs(second));
+    }
+
+    @Test
+    @DisplayName("same id + different name => equals but NOT sameAs")
+    void sameIdDifferentNameIsEqualButNotSameAs() {
+        BeachId id = BeachId.newId();
+        Beach first = new Beach(id, NAME, LATITUDE, LONGITUDE, REGION);
+        Beach second = new Beach(id, new Name("Costa Nova"), LATITUDE, LONGITUDE, REGION);
+        assertEquals(first, second);
+        assertFalse(first.sameAs(second));
+    }
+
+    @Test
+    @DisplayName("same id + different latitude => NOT sameAs")
+    void sameIdDifferentLatitudeIsNotSameAs() {
+        BeachId id = BeachId.newId();
+        Beach first = new Beach(id, NAME, LATITUDE, LONGITUDE, REGION);
+        Beach second = new Beach(id, NAME, new Latitude(41.0), LONGITUDE, REGION);
+        assertFalse(first.sameAs(second));
+    }
+
+    @Test
+    @DisplayName("same id + different longitude => NOT sameAs")
+    void sameIdDifferentLongitudeIsNotSameAs() {
+        BeachId id = BeachId.newId();
+        Beach first = new Beach(id, NAME, LATITUDE, LONGITUDE, REGION);
+        Beach second = new Beach(id, NAME, LATITUDE, new Longitude(-9.0), REGION);
+        assertFalse(first.sameAs(second));
+    }
+
+    @Test
+    @DisplayName("same id + different region => NOT sameAs")
+    void sameIdDifferentRegionIsNotSameAs() {
+        BeachId id = BeachId.newId();
+        Beach first = new Beach(id, NAME, LATITUDE, LONGITUDE, REGION);
+        Beach second = new Beach(id, NAME, LATITUDE, LONGITUDE, new Region(new Name("Norte")));
+        assertFalse(first.sameAs(second));
+    }
+
+    @Test
+    @DisplayName("different id + identical attributes => neither equals nor sameAs")
+    void differentIdIdenticalAttributesIsNeitherEqualNorSameAs() {
+        Beach first = new Beach(BeachId.newId(), NAME, LATITUDE, LONGITUDE, REGION);
+        Beach second = new Beach(BeachId.newId(), NAME, LATITUDE, LONGITUDE, REGION);
+        assertNotEquals(first, second);
+        assertFalse(first.sameAs(second));
+    }
+
+    @Test
+    void sameAsNullIsFalse() {
+        assertFalse(barra().sameAs(null));
     }
 
     // --- toString --------------------------------------------------------

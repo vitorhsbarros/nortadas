@@ -14,7 +14,9 @@ import com.nortadas.domain.valueobject.Name;
  * {@code docs/OOA/class-responsibilities.md}); the Nortada grading rule itself
  * lives in a dedicated detection service, not here.
  *
- * <p>Equality is identity-based ({@link BeachId}), as for any domain entity.
+ * <p>Equality is identity-based ({@link BeachId}), as for any domain entity:
+ * two beaches are {@code equals} when they share an id, regardless of their other
+ * attributes. To compare descriptive state as well, use {@link #sameAs(Beach)}.
  */
 public class Beach {
 
@@ -94,6 +96,29 @@ public class Beach {
     @Override
     public int hashCode() {
         return beachId.hashCode();
+    }
+
+    /**
+     * Attribute-based comparison: {@code true} only when {@code other} is a beach
+     * with the same identity <em>and</em> the same name, latitude, longitude and
+     * region (i.e. identical state). The region is compared by its own identity
+     * ({@link Region#equals(Object)}) — two beaches are {@code sameAs} only when
+     * they reference the same region entity.
+     *
+     * <p>Contrast with {@link #equals(Object)}: two beaches with the same id but
+     * different attributes are {@code equals} (the same entity) yet not
+     * {@code sameAs} (different state); beaches with different ids are neither.
+     * Null-safe — returns {@code false} for a {@code null} argument.
+     */
+    public boolean sameAs(Beach other) {
+        if (other == null) {
+            return false;
+        }
+        return beachId.equals(other.beachId)
+                && name.equals(other.name)
+                && latitude.equals(other.latitude)
+                && longitude.equals(other.longitude)
+                && region.equals(other.region);
     }
 
     @Override
