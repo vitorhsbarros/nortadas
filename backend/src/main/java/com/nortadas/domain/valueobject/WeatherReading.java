@@ -5,7 +5,7 @@ import java.util.Objects;
 
 /**
  * A single weather observation fetched for a beach: sustained wind speed, wind
- * direction, air temperature, and when it was fetched.
+ * direction, air temperature, water temperature, and when it was fetched.
  *
  * <p>It is the sole source of truth a {@link NortadaStatus} is derived from — it
  * does not decide the status itself; the grading rule (US010) lives in a
@@ -17,12 +17,14 @@ public final class WeatherReading {
     private final WindSpeed windSpeed;
     private final WindDirection windDirection;
     private final double temperatureCelsius;
+    private final double waterTemperatureCelsius;
     private final Instant fetchedAt;
 
     public WeatherReading(BeachId beachId,
                           WindSpeed windSpeed,
                           WindDirection windDirection,
                           double temperatureCelsius,
+                          double waterTemperatureCelsius,
                           Instant fetchedAt) {
 
         if (beachId == null) {
@@ -41,6 +43,10 @@ public final class WeatherReading {
             throw new IllegalArgumentException("Weather reading temperature must be a finite number!");
         }
 
+        if (!Double.isFinite(waterTemperatureCelsius)) {
+            throw new IllegalArgumentException("Weather reading water temperature must be a finite number!");
+        }
+
         if (fetchedAt == null) {
             throw new IllegalArgumentException("Weather reading fetch time cannot be null!");
         }
@@ -49,6 +55,7 @@ public final class WeatherReading {
         this.windSpeed = windSpeed;
         this.windDirection = windDirection;
         this.temperatureCelsius = temperatureCelsius;
+        this.waterTemperatureCelsius = waterTemperatureCelsius;
         this.fetchedAt = fetchedAt;
     }
 
@@ -68,6 +75,10 @@ public final class WeatherReading {
         return temperatureCelsius;
     }
 
+    public double getWaterTemperatureCelsius() {
+        return waterTemperatureCelsius;
+    }
+
     public Instant getFetchedAt() {
         return fetchedAt;
     }
@@ -85,12 +96,13 @@ public final class WeatherReading {
                 && windSpeed.equals(that.windSpeed)
                 && windDirection.equals(that.windDirection)
                 && Double.compare(temperatureCelsius, that.temperatureCelsius) == 0
+                && Double.compare(waterTemperatureCelsius, that.waterTemperatureCelsius) == 0
                 && fetchedAt.equals(that.fetchedAt);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(beachId, windSpeed, windDirection, temperatureCelsius, fetchedAt);
+        return Objects.hash(beachId, windSpeed, windDirection, temperatureCelsius, waterTemperatureCelsius, fetchedAt);
     }
 
     @Override
@@ -98,6 +110,7 @@ public final class WeatherReading {
         return "WeatherReading{beachId=" + beachId + ", windSpeed=" + windSpeed
                 + ", windDirection=" + windDirection
                 + ", temperatureCelsius=" + temperatureCelsius
+                + ", waterTemperatureCelsius=" + waterTemperatureCelsius
                 + ", fetchedAt=" + fetchedAt + "}";
     }
 }
