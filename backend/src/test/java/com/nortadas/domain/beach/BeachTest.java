@@ -1,6 +1,7 @@
 package com.nortadas.domain.beach;
 
 import com.nortadas.domain.region.Region;
+import com.nortadas.domain.region.RegionFactory;
 import com.nortadas.domain.valueobject.BeachId;
 import com.nortadas.domain.valueobject.Latitude;
 import com.nortadas.domain.valueobject.Longitude;
@@ -20,7 +21,7 @@ class BeachTest {
     private static final Name NAME = new Name("Praia da Barra");
     private static final Latitude LATITUDE = new Latitude(40.6405);
     private static final Longitude LONGITUDE = new Longitude(-8.7527);
-    private static final Region REGION = new Region(new Name("Centro"));
+    private static final Region REGION = RegionFactory.create(new Name("Centro"));
 
     private static Beach barra() {
         return new Beach(NAME, LATITUDE, LONGITUDE, REGION);
@@ -103,7 +104,7 @@ class BeachTest {
         BeachId id = BeachId.newId();
         Beach first = new Beach(id, NAME, LATITUDE, LONGITUDE, REGION);
         Beach second = new Beach(id, new Name("Costa Nova"),
-                new Latitude(40.6096), new Longitude(-8.7538), new Region(new Name("Norte")));
+                new Latitude(40.6096), new Longitude(-8.7538), RegionFactory.create(new Name("Norte")));
         assertEquals(first, second);
         assertEquals(first.hashCode(), second.hashCode());
     }
@@ -168,7 +169,7 @@ class BeachTest {
     void sameIdDifferentRegionIsNotSameAs() {
         BeachId id = BeachId.newId();
         Beach first = new Beach(id, NAME, LATITUDE, LONGITUDE, REGION);
-        Beach second = new Beach(id, NAME, LATITUDE, LONGITUDE, new Region(new Name("Norte")));
+        Beach second = new Beach(id, NAME, LATITUDE, LONGITUDE, RegionFactory.create(new Name("Norte")));
         assertFalse(first.sameAs(second));
     }
 

@@ -1,9 +1,10 @@
-package com.nortadas.infrastructure.persistence.entity;
+package com.nortadas.infrastructure.persistence.datamodel;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import lombok.Getter;
 
 /**
  * JPA data model for the {@code region} table (docs/architecture.md §3, §8): a
@@ -13,12 +14,13 @@ import jakarta.persistence.Table;
  *
  * <p>{@code id} stores the domain {@code RegionId} string form (a short
  * name-derived code, e.g. {@code NOR}); the schema owns its constraints
- * (Flyway), so this entity only mirrors the columns for Hibernate's
+ * (Flyway), so this data model only mirrors the columns for Hibernate's
  * {@code validate}.
  */
 @Entity
 @Table(name = "region")
-public class RegionEntity {
+@Getter
+public class RegionDataModel {
 
     @Id
     @Column(name = "id", nullable = false, length = 40)
@@ -28,27 +30,11 @@ public class RegionEntity {
     private String name;
 
     /** Required by JPA; not for application use. */
-    protected RegionEntity() {
+    protected RegionDataModel() {
     }
 
-    public RegionEntity(String id, String name) {
+    public RegionDataModel(String id, String name) {
         this.id = id;
-        this.name = name;
-    }
-
-    public String getId() {
-        return id;
-    }
-
-    public void setId(String id) {
-        this.id = id;
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
         this.name = name;
     }
 }

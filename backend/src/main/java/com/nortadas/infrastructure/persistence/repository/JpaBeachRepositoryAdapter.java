@@ -11,7 +11,7 @@ import org.springframework.stereotype.Component;
 /**
  * Adapter implementing {@link BeachRepositoryPort} over Spring Data JPA
  * (Repository + Adapter; docs/architecture.md §7, §8). Translates persisted
- * {@link com.nortadas.infrastructure.persistence.entity.BeachEntity} rows into
+ * {@link com.nortadas.infrastructure.persistence.datamodel.BeachDataModel} rows into
  * domain {@link Beach} objects via {@link BeachMapper}, keeping Spring Data types
  * from leaking past the {@code infrastructure} boundary.
  */

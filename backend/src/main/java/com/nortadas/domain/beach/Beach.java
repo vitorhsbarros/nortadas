@@ -18,6 +18,11 @@ import com.nortadas.domain.valueobject.Name;
  * <p>Equality is identity-based ({@link BeachId}), as for any domain entity:
  * two beaches are {@code equals} when they share an id, regardless of their other
  * attributes. To compare descriptive state as well, use {@link #sameAs(Beach)}.
+ *
+ * <p>Construction is factorized in {@link BeachFactory} (GoF Factory / GRASP
+ * Creator): callers outside this package go through
+ * {@code BeachFactory.create}/{@code rehydrate} rather than these constructors
+ * directly.
  */
 public class Beach {
 
@@ -27,13 +32,13 @@ public class Beach {
     private final Longitude longitude;
     private final Region region;
 
-    /** Creates a new beach, generating its own identity (GRASP Creator). */
-    public Beach(Name name, Latitude latitude, Longitude longitude, Region region) {
+    /** Creates a new beach, generating its own identity. */
+    Beach(Name name, Latitude latitude, Longitude longitude, Region region) {
         this(BeachId.newId(), name, latitude, longitude, region);
     }
 
     /** Rehydrates a beach with a known identity (e.g. loaded from persistence). */
-    public Beach(BeachId beachId, Name name, Latitude latitude, Longitude longitude, Region region) {
+    Beach(BeachId beachId, Name name, Latitude latitude, Longitude longitude, Region region) {
 
         if (beachId == null) {
             throw new IllegalArgumentException("Beach id cannot be null!");

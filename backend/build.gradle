@@ -38,6 +38,11 @@ dependencies {
 
     runtimeOnly 'org.postgresql:postgresql'
 
+    // Boilerplate reduction outside the domain layer only (docs/architecture.md
+    // §3.1: the domain package must stay Lombok-free).
+    compileOnly 'org.projectlombok:lombok'
+    annotationProcessor 'org.projectlombok:lombok'
+
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.springframework.security:spring-security-test'
     // In-memory DB (PostgreSQL compatibility mode) so the context-load test and

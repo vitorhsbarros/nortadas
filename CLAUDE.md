@@ -32,7 +32,7 @@ don't bump it without checking IDE support first.
 
 The **domain (business rules) layer must be pure Java — no frameworks, and no Lombok** (see
 `docs/architecture.md` §3.1); hand-write constructors, getters, and `equals`/`hashCode` there. Lombok is fine
-in other layers (JPA entities, DTOs, adapters). The domain layer (`backend/src/main/java/com/nortadas/domain/`)
+in other layers (JPA data models, DTOs, adapters). The domain layer (`backend/src/main/java/com/nortadas/domain/`)
 is fully migrated to plain Java — verify with
 `grep -rn "lombok\|springframework" backend/src/main/java/com/nortadas/domain` (should return nothing).
 

@@ -1,18 +1,19 @@
 package com.nortadas.infrastructure.persistence.mapper;
 
 import com.nortadas.domain.beach.Beach;
+import com.nortadas.domain.beach.BeachFactory;
 import com.nortadas.domain.valueobject.BeachId;
 import com.nortadas.domain.valueobject.Latitude;
 import com.nortadas.domain.valueobject.Longitude;
 import com.nortadas.domain.valueobject.Name;
-import com.nortadas.infrastructure.persistence.entity.BeachEntity;
+import com.nortadas.infrastructure.persistence.datamodel.BeachDataModel;
 import org.springframework.stereotype.Component;
 
 /**
- * Explicit {@link Beach} ⇄ {@link BeachEntity} mapper (Pure Fabrication;
+ * Explicit {@link Beach} ⇄ {@link BeachDataModel} mapper (Pure Fabrication;
  * docs/architecture.md §3, §6). Delegates the owning region to
  * {@link RegionMapper}; rehydrating to the domain rebuilds every value object
- * through its validating constructor.
+ * through its validating constructor via {@link BeachFactory}.
  */
 @Component
 public class BeachMapper {
@@ -23,21 +24,21 @@ public class BeachMapper {
         this.regionMapper = regionMapper;
     }
 
-    public Beach toDomain(BeachEntity entity) {
-        return new Beach(
-                new BeachId(entity.getId()),
-                new Name(entity.getName()),
-                new Latitude(entity.getLatitude()),
-                new Longitude(entity.getLongitude()),
-                regionMapper.toDomain(entity.getRegion()));
+    public Beach toDomain(BeachDataModel dataModel) {
+        return BeachFactory.rehydrate(
+                new BeachId(dataModel.getId()),
+                new Name(dataModel.getName()),
+                new Latitude(dataModel.getLatitude()),
+                new Longitude(dataModel.getLongitude()),
+                regionMapper.toDomain(dataModel.getRegion()));
     }
 
-    public BeachEntity toEntity(Beach beach) {
-        return new BeachEntity(
+    public BeachDataModel toDataModel(Beach beach) {
+        return new BeachDataModel(
                 beach.getBeachId().getValue(),
                 beach.getName().getValue(),
                 beach.getLatitude().getDegrees(),
                 beach.getLongitude().getDegrees(),
-                regionMapper.toEntity(beach.getRegion()));
+                regionMapper.toDataModel(beach.getRegion()));
     }
 }
