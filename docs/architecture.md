@@ -12,7 +12,7 @@ Dependencies only point inward. Outer layers depend on inner layers through inte
 
 | Layer | Contains | Depends on |
 |---|---|---|
-| **Domain** | Entities, value objects, domain services (`Beach`, `Region`, `WeatherReading`, `NortadaStatus`, `NortadaDetectionService`) | nothing — pure Java, no framework of any kind (see §3.1) |
+| **Domain** | Entities, value objects, domain services (`Beach`, `Municipality`, `Region`, `WeatherReading`, `NortadaStatus`, `NortadaDetectionService`) | nothing — pure Java, no framework of any kind (see §3.1) |
 | **Application** | Use cases that orchestrate domain objects; outbound **ports** (interfaces) the use cases need, e.g. `BeachRepositoryPort`, `WeatherClientPort` | Domain only |
 | **Interface Adapters** | Inbound: Spring `@RestController`s, DTOs, mappers. Outbound: JPA repository adapters, Open-Meteo HTTP client adapter, data model mappers | Application (implements its ports) |
 | **Frameworks & Drivers** | Spring Boot, Spring Data JPA/Hibernate, PostgreSQL, the scheduler trigger, `application.yml` | Everything (wires it together) |
@@ -22,8 +22,8 @@ Dependencies only point inward. Outer layers depend on inner layers through inte
 ```
 com.nortadas
 ├── domain
-│   ├── Beach, Region, WeatherReading, NortadaStatus, User, FavouriteBeaches
-│   └── valueobject/        (BeachId, Name, Latitude, Longitude, Email, ...)
+│   ├── Beach, Municipality, Region, WeatherReading, NortadaStatus, User, FavouriteBeaches
+│   └── valueobject/        (BeachId, MunicipalityId, Name, Latitude, Longitude, Email, ...)
 ├── application
 │   ├── usecase/            (GetBeachListUseCase, GetBeachDetailUseCase, DetectNortadaUseCase)
 │   └── port/                (BeachRepositoryPort, WeatherClientPort — interfaces only)
@@ -55,8 +55,10 @@ three distinct model types, mapped explicitly at the boundaries:
 
 - **Domain object** (`domain/`) — pure business object, enforces its own invariants (as `Name`,
   `Region` already do). Pure Java only — see §3.1. Construction is factorized behind a dedicated
-  `*Factory` per aggregate root (`BeachFactory`, `RegionFactory`) rather than exposed constructors —
-  see §7.
+  `*Factory` per aggregate root (`BeachFactory`, `MunicipalityFactory`, `RegionFactory`) rather than
+  exposed constructors — see §7. `Beach` belongs to a `Municipality`, which in turn belongs to a
+  `Region` (`Beach -> Municipality -> Region`), so beaches can be filtered at a finer granularity
+  than the seven NUTS-II regions as the catalogue grows.
 - **Data model** (`infrastructure/persistence/datamodel/`) — `@Entity` classes shaped for
   Hibernate/JPA, named `*DataModel` (e.g. `BeachDataModel`) rather than `*Entity` to avoid clashing
   with the DDD sense of "entity" used for domain objects like `Beach`/`Region`. Can be denormalized
@@ -140,6 +142,9 @@ BeachController
   is the sole public entry point for constructing that aggregate: it exposes named `create`/
   `rehydrate` methods instead of overloaded constructors, and the aggregate's own constructors are
   package-private so callers outside the aggregate's package cannot bypass the factory.
+  `MunicipalityFactory` follows the same shape but exposes only `create`, since a municipality's id
+  is always an externally-known code (never generated or derived), leaving no separate
+  rehydrate-vs-create distinction to make.
 - **Repository** — persistence hidden behind a port, implemented by Spring Data JPA.
 - **Facade** — use case classes present one coordinating method per client-facing operation, even
   when multiple domain services/ports are involved underneath.

@@ -11,17 +11,17 @@ import org.springframework.stereotype.Component;
 
 /**
  * Explicit {@link Beach} ⇄ {@link BeachDataModel} mapper (Pure Fabrication;
- * docs/architecture.md §3, §6). Delegates the owning region to
- * {@link RegionMapper}; rehydrating to the domain rebuilds every value object
- * through its validating constructor via {@link BeachFactory}.
+ * docs/architecture.md §3, §6). Delegates the owning municipality to
+ * {@link MunicipalityMapper}; rehydrating to the domain rebuilds every value
+ * object through its validating constructor via {@link BeachFactory}.
  */
 @Component
 public class BeachMapper {
 
-    private final RegionMapper regionMapper;
+    private final MunicipalityMapper municipalityMapper;
 
-    public BeachMapper(RegionMapper regionMapper) {
-        this.regionMapper = regionMapper;
+    public BeachMapper(MunicipalityMapper municipalityMapper) {
+        this.municipalityMapper = municipalityMapper;
     }
 
     public Beach toDomain(BeachDataModel dataModel) {
@@ -30,7 +30,7 @@ public class BeachMapper {
                 new Name(dataModel.getName()),
                 new Latitude(dataModel.getLatitude()),
                 new Longitude(dataModel.getLongitude()),
-                regionMapper.toDomain(dataModel.getRegion()));
+                municipalityMapper.toDomain(dataModel.getMunicipality()));
     }
 
     public BeachDataModel toDataModel(Beach beach) {
@@ -39,6 +39,6 @@ public class BeachMapper {
                 beach.getName().getValue(),
                 beach.getLatitude().getDegrees(),
                 beach.getLongitude().getDegrees(),
-                regionMapper.toDataModel(beach.getRegion()));
+                municipalityMapper.toDataModel(beach.getMunicipality()));
     }
 }

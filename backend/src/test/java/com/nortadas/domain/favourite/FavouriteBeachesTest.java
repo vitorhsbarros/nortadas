@@ -2,10 +2,13 @@ package com.nortadas.domain.favourite;
 
 import com.nortadas.domain.beach.Beach;
 import com.nortadas.domain.beach.BeachFactory;
+import com.nortadas.domain.municipality.Municipality;
+import com.nortadas.domain.municipality.MunicipalityFactory;
 import com.nortadas.domain.region.Region;
 import com.nortadas.domain.region.RegionFactory;
 import com.nortadas.domain.valueobject.Latitude;
 import com.nortadas.domain.valueobject.Longitude;
+import com.nortadas.domain.valueobject.MunicipalityId;
 import com.nortadas.domain.valueobject.Name;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -22,9 +25,11 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class FavouriteBeachesTest {
 
     private static final Region REGION = RegionFactory.create(new Name("Centro"));
+    private static final Municipality MUNICIPALITY =
+            MunicipalityFactory.create(MunicipalityId.of("1602"), new Name("Caminha"), REGION);
 
     private static Beach beach(String name) {
-        return BeachFactory.create(new Name(name), new Latitude(40.6), new Longitude(-8.75), REGION);
+        return BeachFactory.create(new Name(name), new Latitude(40.6), new Longitude(-8.75), MUNICIPALITY);
     }
 
     private FavouriteBeaches favourites;
@@ -65,7 +70,7 @@ class FavouriteBeachesTest {
     void addingSameIdentityTwiceIsNoOp() {
         favourites.add(barra);
         Beach sameIdentity = BeachFactory.rehydrate(barra.getBeachId(), new Name("Renamed"),
-                new Latitude(0.0), new Longitude(0.0), REGION);
+                new Latitude(0.0), new Longitude(0.0), MUNICIPALITY);
         favourites.add(sameIdentity);
         assertEquals(1, favourites.getBeaches().size());
     }
