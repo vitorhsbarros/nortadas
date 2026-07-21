@@ -1,8 +1,4 @@
-package com.nortadas.domain;
-
-import com.nortadas.domain.valueobject.BeachId;
-import com.nortadas.domain.valueobject.WindDirection;
-import com.nortadas.domain.valueobject.WindSpeed;
+package com.nortadas.domain.valueobject;
 
 import java.time.Instant;
 import java.util.Objects;

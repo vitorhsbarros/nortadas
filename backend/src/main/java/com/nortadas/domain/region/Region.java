@@ -1,7 +1,9 @@
-package com.nortadas.domain;
+package com.nortadas.domain.region;
 
+import com.nortadas.domain.beach.Beach;
 import com.nortadas.domain.valueobject.Name;
 import com.nortadas.domain.valueobject.RegionId;
+import com.nortadas.domain.valueobject.WeatherReading;
 
 /**
  * A coastal region grouping the beaches located within it (e.g. Norte, Centro,

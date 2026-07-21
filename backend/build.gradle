@@ -79,7 +79,13 @@ tasks.named('jacocoTestCoverageVerification') {
     violationRules {
         rule {
             element = 'PACKAGE'
-            includes = ['com.nortadas.domain', 'com.nortadas.domain.valueobject']
+            includes = [
+                    'com.nortadas.domain',
+                    'com.nortadas.domain.beach',
+                    'com.nortadas.domain.region',
+                    'com.nortadas.domain.favourite',
+                    'com.nortadas.domain.valueobject'
+            ]
             limit {
                 counter = 'LINE'
                 value = 'COVEREDRATIO'

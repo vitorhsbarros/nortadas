@@ -1,4 +1,4 @@
-package com.nortadas.domain;
+package com.nortadas.domain.valueobject;
 
 /**
  * The graded classification derived from a {@link WeatherReading}, reflecting how

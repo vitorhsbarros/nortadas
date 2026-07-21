@@ -1,9 +1,11 @@
 package com.nortadas.domain.valueobject;
 
+import com.nortadas.domain.beach.Beach;
+
 import java.util.UUID;
 
 /**
- * Identity of a {@link com.nortadas.domain.Beach}. The domain generates its own
+ * Identity of a {@link Beach}. The domain generates its own
  * identities (GRASP Creator) rather than delegating to the persistence layer.
  */
 public final class BeachId {

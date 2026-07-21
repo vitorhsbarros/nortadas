@@ -1,4 +1,4 @@
-package com.nortadas.domain;
+package com.nortadas.domain.region;
 
 import com.nortadas.domain.valueobject.Name;
 import com.nortadas.domain.valueobject.RegionId;

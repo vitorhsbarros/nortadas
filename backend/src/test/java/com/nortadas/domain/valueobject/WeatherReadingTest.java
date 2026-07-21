@@ -1,8 +1,5 @@
-package com.nortadas.domain;
+package com.nortadas.domain.valueobject;
 
-import com.nortadas.domain.valueobject.BeachId;
-import com.nortadas.domain.valueobject.WindDirection;
-import com.nortadas.domain.valueobject.WindSpeed;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;

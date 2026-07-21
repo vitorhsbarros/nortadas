@@ -1,4 +1,6 @@
-package com.nortadas.domain;
+package com.nortadas.domain.favourite;
+
+import com.nortadas.domain.beach.Beach;
 
 import java.util.Collections;
 import java.util.LinkedHashSet;

@@ -1,12 +1,14 @@
 package com.nortadas.domain.valueobject;
 
+import com.nortadas.domain.region.Region;
+
 import java.text.Normalizer;
 import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * Identity of a {@link com.nortadas.domain.Region}, in the form
+ * Identity of a {@link Region}, in the form
  * {@code <PREFIX>-<uuid>} where the prefix is derived from the region's name at
  * creation time — e.g. {@code NOR-550e8400-e29b-41d4-a716-446655440000} for
  * "Norte".

@@ -1,4 +1,4 @@
-package com.nortadas.domain;
+package com.nortadas.domain.valueobject;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

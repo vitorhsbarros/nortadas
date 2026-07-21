@@ -1,5 +1,6 @@
-package com.nortadas.domain;
+package com.nortadas.domain.beach;
 
+import com.nortadas.domain.region.Region;
 import com.nortadas.domain.valueobject.BeachId;
 import com.nortadas.domain.valueobject.Latitude;
 import com.nortadas.domain.valueobject.Longitude;
