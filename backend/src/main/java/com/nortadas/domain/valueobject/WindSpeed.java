@@ -9,6 +9,10 @@ public final class WindSpeed {
 
     private final double kmPerHour;
 
+    /**
+     * {@code -0.0} is normalized to {@code 0.0} so {@code equals}/{@code hashCode}
+     * are consistent for zero.
+     */
     public WindSpeed(double kmPerHour) {
 
         if (!Double.isFinite(kmPerHour)) {
@@ -17,6 +21,10 @@ public final class WindSpeed {
 
         if (kmPerHour < 0.0) {
             throw new IllegalArgumentException("Wind speed cannot be negative!");
+        }
+
+        if (kmPerHour == 0.0) {
+            kmPerHour = 0.0;
         }
 
         this.kmPerHour = kmPerHour;

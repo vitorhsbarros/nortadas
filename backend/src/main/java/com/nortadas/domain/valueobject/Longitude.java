@@ -9,6 +9,10 @@ public final class Longitude {
 
     private final double degrees;
 
+    /**
+     * {@code -0.0} is normalized to {@code 0.0} so {@code equals}/{@code hashCode}
+     * are consistent for zero.
+     */
     public Longitude(double degrees) {
 
         if (!Double.isFinite(degrees)) {
@@ -17,6 +21,10 @@ public final class Longitude {
 
         if (degrees < -180.0 || degrees > 180.0) {
             throw new IllegalArgumentException("Longitude must be between -180 and 180 degrees!");
+        }
+
+        if (degrees == 0.0) {
+            degrees = 0.0;
         }
 
         this.degrees = degrees;

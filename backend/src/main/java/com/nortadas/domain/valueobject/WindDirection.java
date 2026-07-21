@@ -10,6 +10,10 @@ public final class WindDirection {
 
     private final double degrees;
 
+    /**
+     * {@code -0.0} is normalized to {@code 0.0} so {@code equals}/{@code hashCode}
+     * are consistent for zero.
+     */
     public WindDirection(double degrees) {
 
         if (!Double.isFinite(degrees)) {
@@ -18,6 +22,10 @@ public final class WindDirection {
 
         if (degrees < 0.0 || degrees >= 360.0) {
             throw new IllegalArgumentException("Wind direction must be between 0 (inclusive) and 360 (exclusive) degrees!");
+        }
+
+        if (degrees == 0.0) {
+            degrees = 0.0;
         }
 
         this.degrees = degrees;

@@ -11,6 +11,7 @@ import java.util.stream.DoubleStream;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class LongitudeTest {
 
@@ -92,5 +93,19 @@ class LongitudeTest {
     @DisplayName("toString renders degrees with the degree sign")
     void toStringRendersDegreeSign() {
         assertEquals("-8.75°", new Longitude(-8.75).toString());
+    }
+
+    @Test
+    @DisplayName("-0.0 is normalized to 0.0 so equals/hashCode are consistent for zero")
+    void negativeZeroEqualsPositiveZero() {
+        Longitude positiveZero = new Longitude(0.0);
+        Longitude negativeZero = new Longitude(-0.0);
+
+        assertEquals(positiveZero, negativeZero);
+        assertEquals(positiveZero.hashCode(), negativeZero.hashCode());
+
+        // assertEquals on doubles treats -0.0 == 0.0, so use Double.compare for a
+        // bit-exact check that the stored value is actually positive zero.
+        assertTrue(Double.compare(negativeZero.getDegrees(), 0.0) == 0);
     }
 }

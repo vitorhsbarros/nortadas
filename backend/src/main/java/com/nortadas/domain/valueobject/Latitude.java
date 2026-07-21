@@ -9,6 +9,10 @@ public final class Latitude {
 
     private final double degrees;
 
+    /**
+     * {@code -0.0} is normalized to {@code 0.0} so {@code equals}/{@code hashCode}
+     * are consistent for zero.
+     */
     public Latitude(double degrees) {
 
         if (!Double.isFinite(degrees)) {
@@ -17,6 +21,10 @@ public final class Latitude {
 
         if (degrees < -90.0 || degrees > 90.0) {
             throw new IllegalArgumentException("Latitude must be between -90 and 90 degrees!");
+        }
+
+        if (degrees == 0.0) {
+            degrees = 0.0;
         }
 
         this.degrees = degrees;
