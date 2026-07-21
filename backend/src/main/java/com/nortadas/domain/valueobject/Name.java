@@ -1,12 +1,29 @@
 package com.nortadas.domain.valueobject;
 
+import java.util.regex.Pattern;
+
 /**
  * A validated human-readable name (beach name, region name, ...).
  *
  * <p>Invariants, enforced at construction: not blank, between 2 and 80 characters,
- * letters (including accented), spaces, apostrophes and hyphens only.
+ * composed only of Unicode letters (including accented, e.g. "Açores", "São"),
+ * spaces, apostrophes and hyphens, and containing at least one actual letter (so
+ * letter-less values such as "--" or "''" are rejected).
+ *
+ * <p>The character check uses the Unicode {@code IsAlphabetic} property rather
+ * than a Latin-1 code-point range: the old {@code À-ÿ} range wrongly admitted the
+ * multiplication ({@code ×}, U+00D7) and division ({@code ÷}, U+00F7) signs, which
+ * fall inside it but are math symbols, not letters.
  */
 public final class Name {
+
+    /** Every character must be a Unicode letter, whitespace, apostrophe or hyphen. */
+    private static final Pattern ALLOWED_CHARACTERS =
+            Pattern.compile("[\\p{IsAlphabetic}\\s'-]+");
+
+    /** At least one character must be an actual Unicode letter. */
+    private static final Pattern CONTAINS_LETTER =
+            Pattern.compile("\\p{IsAlphabetic}");
 
     private final String value;
 
@@ -20,8 +37,12 @@ public final class Name {
             throw new IllegalArgumentException("Name must have between 2 and 80 characters!");
         }
 
-        if (!value.matches("^[a-zA-ZÀ-ÿ\\s'-]+$")) {
+        if (!ALLOWED_CHARACTERS.matcher(value).matches()) {
             throw new IllegalArgumentException("Name cannot contain special characters!");
+        }
+
+        if (!CONTAINS_LETTER.matcher(value).find()) {
+            throw new IllegalArgumentException("Name must contain at least one letter!");
         }
 
         this.value = value;

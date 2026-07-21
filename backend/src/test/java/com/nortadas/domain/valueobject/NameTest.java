@@ -17,9 +17,13 @@ class NameTest {
     @ParameterizedTest(name = "accepts \"{0}\"")
     @ValueSource(strings = {
             "Praia de São Jacinto",   // accented letters + spaces
+            "Açores",                 // accented letters (c-cedilla)
             "Costa Nova",             // plain letters + space
+            "Vila do Conde",          // plain letters + spaces
+            "Peniche",                // plain letters
             "Vila Nova de Mil-Fontes",// hyphen
             "Praia d'El Rey",         // apostrophe
+            "O'Neil",                 // apostrophe
             "ab"                      // exact minimum length (2)
     })
     void acceptsValidNames(String value) {
@@ -76,12 +80,26 @@ class NameTest {
             "Praia_Norte",     // underscore
             "Praia.Norte",     // dot
             "Praia, Norte",    // comma
-            "Praia@Norte"      // symbol
+            "Praia@Norte",     // symbol
+            "A×B",        // multiplication sign (U+00D7) — inside the old À-ÿ range but not a letter
+            "A÷B"         // division sign (U+00F7) — inside the old À-ÿ range but not a letter
     })
     void rejectsSpecialCharacters(String value) {
         IllegalArgumentException ex =
                 assertThrows(IllegalArgumentException.class, () -> new Name(value));
         assertEquals("Name cannot contain special characters!", ex.getMessage());
+    }
+
+    @ParameterizedTest(name = "rejects letter-less value \"{0}\"")
+    @ValueSource(strings = {
+            "--",    // hyphens only
+            "''",    // apostrophes only
+            "- '"    // allowed punctuation and space, but no letters
+    })
+    void rejectsValuesWithoutAnyLetter(String value) {
+        IllegalArgumentException ex =
+                assertThrows(IllegalArgumentException.class, () -> new Name(value));
+        assertEquals("Name must contain at least one letter!", ex.getMessage());
     }
 
     // --- equals / hashCode / toString ------------------------------------
