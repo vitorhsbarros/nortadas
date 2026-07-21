@@ -19,12 +19,12 @@ public class Region {
     private final Name name;
 
     /**
-     * Creates a new region, generating its own identity from its name (GRASP
-     * Creator). The name-derived prefix inside the id is a snapshot at creation:
-     * renaming a region later does not change its identity.
+     * Creates a new region, deriving its own identity from its name (GRASP
+     * Creator). The derivation is a snapshot at creation: renaming a region
+     * later does not change its identity.
      */
     public Region(Name name) {
-        this(RegionId.newId(name), name);
+        this(RegionId.fromName(name), name);
     }
 
     /** Rehydrates a region with a known identity (e.g. loaded from persistence). */
