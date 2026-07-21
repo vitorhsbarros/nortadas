@@ -49,25 +49,39 @@ with a detached `git worktree` at the tip commit rather than trusting the workin
 - Domain classes enforce their own invariants in constructors rather than via a validation framework, e.g.
   `Name` rejects blank/too-short/too-long/special-character/letterless values, `Region`/`Beach` reject null
   constructor args (`backend/src/main/java/com/nortadas/domain/`).
-- **Domain is organized by DDD aggregate boundary, one package per aggregate root**, plus a shared
-  value-object package — not the flat `controller`/`service`/`repository`/`dto` layout in
-  `docs/OOA/package-structure.md`, which `docs/architecture.md` explicitly supersedes:
-  - `domain.beach` — `Beach` only (aggregate root)
-  - `domain.region` — `Region` only (aggregate root)
+- **Domain is organized by DDD aggregate boundary, one package per aggregate root** (each holding the root
+  entity plus its `*Factory`), plus a shared value-object package — not the flat
+  `controller`/`service`/`repository`/`dto` layout in `docs/OOA/package-structure.md`, which
+  `docs/architecture.md` explicitly supersedes:
+  - `domain.beach` — `Beach` (aggregate root) + `BeachFactory`
+  - `domain.municipality` — `Municipality` (aggregate root) + `MunicipalityFactory`
+  - `domain.region` — `Region` (aggregate root) + `RegionFactory`
   - `domain.favourite` — `FavouriteBeaches` (its own aggregate: a beach-reference collection pending `User`
     linkage, not nested under `beach`)
   - `domain.valueobject` — every value object, including ones that read as "beach concepts" but have no
-    identity and value-based equality: `BeachId`, `RegionId`, `Latitude`, `Longitude`, `WindSpeed`,
-    `WindDirection`, `Name`, `WeatherReading`, `NortadaStatus`
-  - Dependency direction is one-way: `valueobject` must never import from `beach`/`region`. If you need a
-    `{@link Beach}`-style Javadoc cross-reference from inside `valueobject`, use the fully-qualified name in
-    the tag instead of an import — a real import there previously created a package cycle even when only
-    used for Javadoc.
-- **Domain entities use DDD-correct equality**: `Beach.equals`/`Region.equals` (and `hashCode`) are
-  **identity-based** (compare only `BeachId`/`RegionId`). Both also expose a null-safe, type-safe
-  `sameAs(...)` method that is **attribute-based** (compares every field) — two entities can be `equals`
-  (same identity) but not `sameAs` (different state) if only their descriptive attributes differ. Value
-  objects keep plain value-based `equals` and get no `sameAs` (they already *are* their attributes).
+    identity and value-based equality: `BeachId`, `MunicipalityId`, `RegionId`, `Latitude`, `Longitude`,
+    `WindSpeed`, `WindDirection`, `Name`, `WeatherReading`, `NortadaStatus`
+  - Dependency direction is one-way: `valueobject` must never import from an aggregate package
+    (`beach`/`municipality`/`region`). If you need a `{@link Beach}`-style Javadoc cross-reference from
+    inside `valueobject`, use the fully-qualified name in the tag instead of an import — a real import there
+    previously created a package cycle even when only used for Javadoc.
+- **Aggregate roots are constructed only through their `*Factory`** (GoF Factory / GRASP Creator;
+  `docs/architecture.md` §7). The entity's own constructors are **package-private**, so
+  `new Beach(...)`/`new Region(...)`/`new Municipality(...)` will not compile outside the aggregate's own
+  package — go through `BeachFactory.create(...)`/`.rehydrate(...)`, `RegionFactory.create(...)`/`.rehydrate(...)`,
+  or `MunicipalityFactory.create(...)` (mappers and cross-package tests already do). Same-package unit tests
+  still call the constructors directly, on purpose — they're testing the invariant checks the constructor
+  enforces.
+- **`Beach` belongs to a `Municipality`, which belongs to a `Region`** (`Beach → Municipality → Region`).
+  `Beach` no longer references a `Region` directly: `Beach.getRegion()` is derived via
+  `municipality.getRegion()`, so region is never stored redundantly on the beach. Municipality is the search
+  granularity between beach and the seven broad NUTS-II regions.
+- **Domain entities use DDD-correct equality**: every entity's `equals`/`hashCode` (`Beach`, `Municipality`,
+  `Region`) is **identity-based** (compares only its id — `BeachId`/`MunicipalityId`/`RegionId`). Each also
+  exposes a null-safe, type-safe `sameAs(...)` method that is **attribute-based** (compares every field) —
+  two entities can be `equals` (same identity) but not `sameAs` (different state) if only their descriptive
+  attributes differ. Value objects keep plain value-based `equals` and get no `sameAs` (they already *are*
+  their attributes).
 - `RegionId` is a **name-derived natural key** — a short code (1-3 uppercase letters, e.g. `NOR` for "Norte"):
   the first three Unicode letters of the region's name at creation time, accent-stripped and uppercased
   (`RegionId.fromName(Name)`, GRASP Creator). Unlike `BeachId`, this is deterministic (the same name always
@@ -75,12 +89,27 @@ with a detached `git worktree` at the tip commit rather than trusting the workin
   curated vocabulary (Portugal's coastal regions), so uniqueness comes from the closed set of names, not from
   the id. It's still a **snapshot** — renaming a region later does not change its id. Rehydrate from storage
   via the validating `RegionId.of(String)`.
+- `MunicipalityId` is also a natural key, but of a different kind: unlike `RegionId` (derived from the name)
+  or `BeachId` (randomly generated), it is **externally assigned** — Portugal's official INE/DICOFRE
+  municipality code (exactly 4 digits, e.g. `0107` for Espinho). It is stored as a `String`, not an int,
+  because leading zeros are significant (`0107` ≠ `107`). There is deliberately **no generator**:
+  `MunicipalityId.of(String)` validates and rehydrates, and there is *no* `fromName`/`newId` equivalent —
+  municipalities are a curated reference set whose codes come from outside this system. Consequently
+  `MunicipalityFactory` exposes only `create` (no `rehydrate`), since there is no id-generation case to
+  distinguish. Seeded in `V3__add_municipality.sql`.
+- **JPA data models are named `*DataModel`, not `*Entity`** (`infrastructure/persistence/datamodel/`, e.g.
+  `BeachDataModel`, `RegionDataModel`, `MunicipalityDataModel`) — deliberately not "Entity", to avoid
+  clashing with the DDD sense of *entity* used for domain roots like `Beach`. They may use Lombok (`@Getter`)
+  and are translated to/from domain objects by the `*Mapper` classes; ORM annotations
+  (`@Entity`/`@Table`/`@Column`) never appear on a domain class.
 - Double-backed value objects (`Latitude`, `Longitude`, `WindSpeed`, `WindDirection`) normalize `-0.0` to
   `0.0` in their constructors so `equals`/`hashCode` stay consistent for zero (`Double.compare` would
   otherwise treat them as different).
 - `backend/build.gradle` wires a JaCoCo coverage gate into `check`: every `com.nortadas.domain*` package must
-  hit **≥95% line and branch coverage** (currently 100% across all four domain packages). Bootstrap/config
-  classes (`NortadasApplication`, `config/**`) are excluded from the gate.
+  hit **≥95% line and branch coverage** (currently 100% across all five domain packages — `beach`,
+  `municipality`, `region`, `favourite`, `valueobject`; add a new aggregate package to the gate's `includes`
+  list when you create one). Bootstrap/config classes (`NortadasApplication`, `config/**`) are excluded from
+  the gate.
 - `docs/OOA/nortada-OOA.puml` (analysis) and `docs/OOD/nortada-OOD.puml` (design, with operations/visibility
   and the full application/infrastructure/web class set) hold the PlantUML diagrams behind the architecture;
   `docs/OOD/sequences/` has the key interaction flows; `docs/OOD/api-contract.md` defines the REST Level 3
@@ -88,8 +117,8 @@ with a detached `git worktree` at the tip commit rather than trusting the workin
   scheduled vs on-demand fetch). Consult these before introducing new domain types, endpoints, or
   relationships.
 - `docs/architecture.md` defines the target Clean Architecture layering (domain / application / infrastructure /
-  web), the SOLID/GRASP/GoF conventions, and the rule that domain objects, ORM entities, and DTOs stay separate
-  types mapped at layer boundaries — consult it before adding new classes or packages.
+  web), the SOLID/GRASP/GoF conventions, and the rule that domain objects, ORM data models (`*DataModel`), and
+  DTOs stay separate types mapped at layer boundaries — consult it before adding new classes or packages.
 
 ## CI (`.github/workflows/ci-pipeline.yml`)
 
