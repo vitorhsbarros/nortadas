@@ -15,9 +15,14 @@ spring:
   flyway:
     enabled: true
 
-# Keep the hourly weather fetch off during tests so the context loads fully
-# offline — no scheduled trigger ever reaches out to Open-Meteo.
+# Keep the scheduled weather jobs off during tests so the context loads fully
+# offline — no scheduled trigger ever reaches out to Open-Meteo or purges rows.
 nortadas:
   weather:
     scheduler:
       enabled: false
+    retention:
+      # Disabled like the fetch scheduler; days is still supplied because the
+      # purge use case reads it at construction time, context-load included.
+      enabled: false
+      days: 7

@@ -36,3 +36,11 @@ nortadas:
       # the top of every hour. Set enabled=false to switch the trigger off entirely.
       enabled: ${WEATHER_SCHEDULER_ENABLED:true}
       cron: ${WEATHER_SCHEDULER_CRON:0 0 * * * *}
+    retention:
+      # 7-day rolling retention for stored readings (issue #48). A daily purge
+      # deletes every reading older than `days`; the window is strict (no
+      # keep-latest-per-beach exception). Cron is [second minute hour ...];
+      # default is the top of every day. Set enabled=false to switch it off.
+      days: ${WEATHER_RETENTION_DAYS:7}
+      enabled: ${WEATHER_RETENTION_ENABLED:true}
+      cron: ${WEATHER_RETENTION_CRON:0 0 0 * * *}
