@@ -4,11 +4,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project
 
-Nortada is an app to check "Nortada" wind conditions on Portuguese beaches. The repo is currently in early
-scaffolding (Phase 0/1a per `docs/user-stories/`): a plain Gradle Java skeleton exists under `app/`, but the
-intended backend is a **Spring Boot** service (Web, JPA, PostgreSQL, Flyway, Security, HATEOAS) that has not
-been scaffolded yet — see `docs/OOA/package-structure.md` for the target package layout
-(`controller` / `service` / `repository` / `domain` / `dto` / `scheduler` / `config`). Only `domain` exists today.
+Nortada is an app to check "Nortada" wind conditions on Portuguese beaches. The backend is a **Spring Boot**
+service (Web, JPA, PostgreSQL, Flyway, Security, HATEOAS) scaffolded under `backend/` (Phase 1a per
+`docs/user-stories/`; the old plain-Gradle `app/` skeleton has been removed). Package layout follows the
+Clean Architecture layering in `docs/architecture.md`, not the flat OOA layout in
+`docs/OOA/package-structure.md` (the latter is superseded — see Architecture notes below).
 
 ## Commands
 
@@ -16,28 +16,74 @@ All commands run from the `nortadas/` project root (the Gradle root project) usi
 
 - Build: `./gradlew build`
 - Run all tests: `./gradlew test`
-- Run a single test class: `./gradlew test --tests "com.nortadas.AppTest"`
-- Run a single test method: `./gradlew test --tests "com.nortadas.AppTest.appHasAGreeting"`
-- Run the app: `./gradlew run` — **note:** `app/build.gradle` currently sets `mainClass = 'org.example.App'`
-  (a leftover from `gradle init`), but the real class is `com.nortadas.App`. This must be fixed before `run` works.
+- Run a single test class: `./gradlew test --tests "com.nortadas.domain.beach.BeachTest"`
+- Run a single test method: `./gradlew test --tests "com.nortadas.domain.beach.BeachTest.createConstructorGeneratesIdentityAndKeepsAttributes"`
+- Run the app: `./gradlew :backend:bootRun` — needs a running PostgreSQL matching `backend/docker-compose.yml`'s
+  defaults (`docker compose -f backend/docker-compose.yml up -d` first). The app defaults to port `8081`
+  (not Spring's usual `8080`, which is commonly already taken locally) — override via `SERVER_PORT`.
+- The build itself does **not** need Docker/Postgres: `NortadasApplicationTests` boots the full Spring context
+  (including the Flyway migration) against H2 in PostgreSQL-compatibility mode via the `test` profile
+  (`backend/src/test/resources/application-test.yml`).
 
-Dependency versions (Guava, JUnit Jupiter) are managed centrally in `gradle/libs.versions.toml`, not in
-`app/build.gradle` directly. The **domain (business rules) layer must be pure Java — no frameworks, and
-no Lombok** (see `docs/architecture.md` §3.1); hand-write constructors, getters, and `equals`/`hashCode`
-there. Lombok is fine in other layers (JPA entities, DTOs, adapters). Note: the current domain classes
-(`Beach`, `Name`, `Region`, …) still use Lombok (`@Getter`, `@EqualsAndHashCode`, `@Value`) and are
-pending migration to plain Java.
+Dependency versions for Spring-managed libraries (starters, PostgreSQL driver, Flyway, H2) come from the
+Spring Boot BOM, not `gradle/libs.versions.toml` — that file only pins the Boot/dependency-management plugin
+versions. The Gradle wrapper is pinned to **9.2.1** (not the latest) for IntelliJ Gradle-sync compatibility;
+don't bump it without checking IDE support first.
+
+The **domain (business rules) layer must be pure Java — no frameworks, and no Lombok** (see
+`docs/architecture.md` §3.1); hand-write constructors, getters, and `equals`/`hashCode` there. Lombok is fine
+in other layers (JPA entities, DTOs, adapters). The domain layer (`backend/src/main/java/com/nortadas/domain/`)
+is fully migrated to plain Java — verify with
+`grep -rn "lombok\|springframework" backend/src/main/java/com/nortadas/domain` (should return nothing).
+
+**Do not re-add a blanket `application.yml` / `application-*.yml` rule to `.gitignore`.** An old, uncommented
+rule like that once silently excluded `backend/src/main/resources/application.yml` and the entire
+`backend/src/test/resources/` directory from every commit despite the files existing on disk — every local
+build passed while the actual pushed branch was missing its config entirely. Neither file holds real secrets
+(datasource credentials are env-var driven with a documented local-dev default, already Gitleaks-allowlisted);
+they must stay tracked. If a build looks green locally but you're unsure the branch is self-contained, verify
+with a detached `git worktree` at the tip commit rather than trusting the working directory.
 
 ## Architecture notes
 
 - Domain classes enforce their own invariants in constructors rather than via a validation framework, e.g.
-  `Name` rejects blank/too-short/too-long/special-character values, `Region` rejects a null `Name`
-  (`app/src/main/java/com/nortadas/domain/`).
-- `Region` generates its own `UUID` identity in the constructor rather than relying on a persistence layer.
-- Several domain classes (`FavouriteBeaches`, `NortadaStatus`, `WeatherReading`) are stubs with no members yet —
-  check `docs/user-stories/` (phase 1a/1b) for what they're expected to become before extending them.
-- `docs/OOA/nortada-OOA.puml` and `docs/OOD/nortada-OOD.puml` hold the PlantUML analysis/design diagrams behind
-  the intended architecture; consult these before introducing new domain types or relationships.
+  `Name` rejects blank/too-short/too-long/special-character/letterless values, `Region`/`Beach` reject null
+  constructor args (`backend/src/main/java/com/nortadas/domain/`).
+- **Domain is organized by DDD aggregate boundary, one package per aggregate root**, plus a shared
+  value-object package — not the flat `controller`/`service`/`repository`/`dto` layout in
+  `docs/OOA/package-structure.md`, which `docs/architecture.md` explicitly supersedes:
+  - `domain.beach` — `Beach` only (aggregate root)
+  - `domain.region` — `Region` only (aggregate root)
+  - `domain.favourite` — `FavouriteBeaches` (its own aggregate: a beach-reference collection pending `User`
+    linkage, not nested under `beach`)
+  - `domain.valueobject` — every value object, including ones that read as "beach concepts" but have no
+    identity and value-based equality: `BeachId`, `RegionId`, `Latitude`, `Longitude`, `WindSpeed`,
+    `WindDirection`, `Name`, `WeatherReading`, `NortadaStatus`
+  - Dependency direction is one-way: `valueobject` must never import from `beach`/`region`. If you need a
+    `{@link Beach}`-style Javadoc cross-reference from inside `valueobject`, use the fully-qualified name in
+    the tag instead of an import — a real import there previously created a package cycle even when only
+    used for Javadoc.
+- **Domain entities use DDD-correct equality**: `Beach.equals`/`Region.equals` (and `hashCode`) are
+  **identity-based** (compare only `BeachId`/`RegionId`). Both also expose a null-safe, type-safe
+  `sameAs(...)` method that is **attribute-based** (compares every field) — two entities can be `equals`
+  (same identity) but not `sameAs` (different state) if only their descriptive attributes differ. Value
+  objects keep plain value-based `equals` and get no `sameAs` (they already *are* their attributes).
+- `RegionId` is a **name-derived identity** in the form `PREFIX-UUID` (e.g. `NOR-<uuid>` for "Norte"): the
+  prefix is the first three Unicode letters of the region's name at creation time, accent-stripped and
+  uppercased (`RegionId.newId(Name)`, GRASP Creator). It's a **snapshot** — renaming a region later does not
+  change its id. Rehydrate from storage via the validating `RegionId.of(String)`.
+- Double-backed value objects (`Latitude`, `Longitude`, `WindSpeed`, `WindDirection`) normalize `-0.0` to
+  `0.0` in their constructors so `equals`/`hashCode` stay consistent for zero (`Double.compare` would
+  otherwise treat them as different).
+- `backend/build.gradle` wires a JaCoCo coverage gate into `check`: every `com.nortadas.domain*` package must
+  hit **≥95% line and branch coverage** (currently 100% across all four domain packages). Bootstrap/config
+  classes (`NortadasApplication`, `config/**`) are excluded from the gate.
+- `docs/OOA/nortada-OOA.puml` (analysis) and `docs/OOD/nortada-OOD.puml` (design, with operations/visibility
+  and the full application/infrastructure/web class set) hold the PlantUML diagrams behind the architecture;
+  `docs/OOD/sequences/` has the key interaction flows; `docs/OOD/api-contract.md` defines the REST Level 3
+  HATEOAS/HAL+JSON contract for the beach endpoints; `docs/OOD/design-decisions.md` records the ADRs (e.g.
+  scheduled vs on-demand fetch). Consult these before introducing new domain types, endpoints, or
+  relationships.
 - `docs/architecture.md` defines the target Clean Architecture layering (domain / application / infrastructure /
   web), the SOLID/GRASP/GoF conventions, and the rule that domain objects, ORM entities, and DTOs stay separate
   types mapped at layer boundaries — consult it before adding new classes or packages.
