@@ -32,7 +32,7 @@ don't bump it without checking IDE support first.
 
 The **domain (business rules) layer must be pure Java — no frameworks, and no Lombok** (see
 `docs/architecture.md` §3.1); hand-write constructors, getters, and `equals`/`hashCode` there. Lombok is fine
-in other layers (JPA entities, DTOs, adapters). The domain layer (`backend/src/main/java/com/nortadas/domain/`)
+in other layers (JPA data models, DTOs, adapters). The domain layer (`backend/src/main/java/com/nortadas/domain/`)
 is fully migrated to plain Java — verify with
 `grep -rn "lombok\|springframework" backend/src/main/java/com/nortadas/domain` (should return nothing).
 
@@ -68,10 +68,13 @@ with a detached `git worktree` at the tip commit rather than trusting the workin
   `sameAs(...)` method that is **attribute-based** (compares every field) — two entities can be `equals`
   (same identity) but not `sameAs` (different state) if only their descriptive attributes differ. Value
   objects keep plain value-based `equals` and get no `sameAs` (they already *are* their attributes).
-- `RegionId` is a **name-derived identity** in the form `PREFIX-UUID` (e.g. `NOR-<uuid>` for "Norte"): the
-  prefix is the first three Unicode letters of the region's name at creation time, accent-stripped and
-  uppercased (`RegionId.newId(Name)`, GRASP Creator). It's a **snapshot** — renaming a region later does not
-  change its id. Rehydrate from storage via the validating `RegionId.of(String)`.
+- `RegionId` is a **name-derived natural key** — a short code (1-3 uppercase letters, e.g. `NOR` for "Norte"):
+  the first three Unicode letters of the region's name at creation time, accent-stripped and uppercased
+  (`RegionId.fromName(Name)`, GRASP Creator). Unlike `BeachId`, this is deterministic (the same name always
+  yields the same code) rather than randomly generated — appropriate because regions are a small, fixed,
+  curated vocabulary (Portugal's coastal regions), so uniqueness comes from the closed set of names, not from
+  the id. It's still a **snapshot** — renaming a region later does not change its id. Rehydrate from storage
+  via the validating `RegionId.of(String)`.
 - Double-backed value objects (`Latitude`, `Longitude`, `WindSpeed`, `WindDirection`) normalize `-0.0` to
   `0.0` in their constructors so `equals`/`hashCode` stay consistent for zero (`Double.compare` would
   otherwise treat them as different).

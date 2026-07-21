@@ -59,7 +59,7 @@ class BeachIdTest {
         BeachId id = new BeachId(uuid);
         assertNotEquals(null, id);
         assertNotEquals(uuid, id);
-        assertNotEquals(id, RegionId.newId(new Name("Norte")));
+        assertNotEquals(id, RegionId.fromName(new Name("Norte")));
     }
 
     @Test

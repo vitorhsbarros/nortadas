@@ -56,11 +56,11 @@ already require.
 
 ---
 
-## ADR-003 — Three-model separation (domain / entity / DTO)
+## ADR-003 — Three-model separation (domain / data model / DTO)
 
 **Decision.** Three distinct types per concept, mapped explicitly at boundaries: the pure
 `domain` object (e.g. `Beach`), the JPA `@Entity` data model
-(`infrastructure/persistence/entity/BeachEntity`), and the HAL+JSON `web/dto`
+(`infrastructure/persistence/datamodel/BeachDataModel`), and the HAL+JSON `web/dto`
 (`BeachResponse`). Dedicated mapper classes translate between them.
 
 **Rationale.**

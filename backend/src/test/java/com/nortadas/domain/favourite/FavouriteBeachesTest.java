@@ -1,7 +1,9 @@
 package com.nortadas.domain.favourite;
 
 import com.nortadas.domain.beach.Beach;
+import com.nortadas.domain.beach.BeachFactory;
 import com.nortadas.domain.region.Region;
+import com.nortadas.domain.region.RegionFactory;
 import com.nortadas.domain.valueobject.Latitude;
 import com.nortadas.domain.valueobject.Longitude;
 import com.nortadas.domain.valueobject.Name;
@@ -19,10 +21,10 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class FavouriteBeachesTest {
 
-    private static final Region REGION = new Region(new Name("Centro"));
+    private static final Region REGION = RegionFactory.create(new Name("Centro"));
 
     private static Beach beach(String name) {
-        return new Beach(new Name(name), new Latitude(40.6), new Longitude(-8.75), REGION);
+        return BeachFactory.create(new Name(name), new Latitude(40.6), new Longitude(-8.75), REGION);
     }
 
     private FavouriteBeaches favourites;
@@ -62,7 +64,7 @@ class FavouriteBeachesTest {
     @DisplayName("a beach with the same id counts as the same favourite (identity equality)")
     void addingSameIdentityTwiceIsNoOp() {
         favourites.add(barra);
-        Beach sameIdentity = new Beach(barra.getBeachId(), new Name("Renamed"),
+        Beach sameIdentity = BeachFactory.rehydrate(barra.getBeachId(), new Name("Renamed"),
                 new Latitude(0.0), new Longitude(0.0), REGION);
         favourites.add(sameIdentity);
         assertEquals(1, favourites.getBeaches().size());

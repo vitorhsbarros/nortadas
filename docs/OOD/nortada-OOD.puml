@@ -196,19 +196,19 @@ package "application" #dee2e6 {
 
 package "infrastructure" #dee2e6 {
 
-    package "infrastructure.persistence.entity" #e9ecef {
-        class BeachEntity <<@Entity>> {
+    package "infrastructure.persistence.datamodel" #e9ecef {
+        class BeachDataModel <<@Entity>> {
             - id : UUID
             - name : String
             - latitude : double
             - longitude : double
-            - region : RegionEntity
+            - region : RegionDataModel
         }
-        class RegionEntity <<@Entity>> {
+        class RegionDataModel <<@Entity>> {
             - id : UUID
             - name : String
         }
-        class WeatherReadingEntity <<@Entity>> {
+        class WeatherReadingDataModel <<@Entity>> {
             - id : UUID
             - beachId : UUID
             - windSpeed : double
@@ -220,19 +220,19 @@ package "infrastructure" #dee2e6 {
 
     package "infrastructure.persistence.mapper" #e9ecef {
         class BeachPersistenceMapper <<mapper>> {
-            + toDomain(e : BeachEntity) : Beach
-            + toEntity(b : Beach) : BeachEntity
+            + toDomain(e : BeachDataModel) : Beach
+            + toDataModel(b : Beach) : BeachDataModel
         }
         class WeatherReadingPersistenceMapper <<mapper>> {
-            + toDomain(e : WeatherReadingEntity) : WeatherReading
-            + toEntity(r : WeatherReading) : WeatherReadingEntity
+            + toDomain(e : WeatherReadingDataModel) : WeatherReading
+            + toDataModel(r : WeatherReading) : WeatherReadingDataModel
         }
     }
 
     package "infrastructure.persistence.repository" #e9ecef {
         interface BeachJpaRepository <<Spring Data>> {
-            + findAll(p : Pageable) : Page<BeachEntity>
-            + findById(id : UUID) : Optional<BeachEntity>
+            + findAll(p : Pageable) : Page<BeachDataModel>
+            + findById(id : UUID) : Optional<BeachDataModel>
         }
         class BeachRepositoryAdapter <<adapter>> {
             - jpa : BeachJpaRepository
@@ -353,9 +353,9 @@ WeatherReadingRepositoryAdapter --> WeatherReadingJpaRepository
 WeatherReadingRepositoryAdapter --> WeatherReadingPersistenceMapper
 OpenMeteoClientAdapter ..|> WeatherClientPort
 BeachPersistenceMapper ..> Beach
-BeachPersistenceMapper ..> BeachEntity
-BeachJpaRepository ..> BeachEntity
-WeatherReadingJpaRepository ..> WeatherReadingEntity
+BeachPersistenceMapper ..> BeachDataModel
+BeachJpaRepository ..> BeachDataModel
+WeatherReadingJpaRepository ..> WeatherReadingDataModel
 
 ' ---- Web depends on application + DTOs (Adapter/Controller) ----
 BeachController --> GetBeachListUseCase
@@ -374,7 +374,7 @@ AppConfig ..> NortadaDetectionService
 
 note as N1
   Three models, mapped at boundaries (architecture.md section 3):
-  domain.Beach  !=  persistence.BeachEntity  !=  web.dto.BeachResponse
+  domain.Beach  !=  persistence.BeachDataModel  !=  web.dto.BeachResponse
   Mappers (Pure Fabrication) translate between them; no shared inheritance.
 end note
 

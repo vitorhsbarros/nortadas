@@ -14,7 +14,7 @@ Dependencies only point inward. Outer layers depend on inner layers through inte
 |---|---|---|
 | **Domain** | Entities, value objects, domain services (`Beach`, `Region`, `WeatherReading`, `NortadaStatus`, `NortadaDetectionService`) | nothing — pure Java, no framework of any kind (see §3.1) |
 | **Application** | Use cases that orchestrate domain objects; outbound **ports** (interfaces) the use cases need, e.g. `BeachRepositoryPort`, `WeatherClientPort` | Domain only |
-| **Interface Adapters** | Inbound: Spring `@RestController`s, DTOs, mappers. Outbound: JPA repository adapters, Open-Meteo HTTP client adapter, entity mappers | Application (implements its ports) |
+| **Interface Adapters** | Inbound: Spring `@RestController`s, DTOs, mappers. Outbound: JPA repository adapters, Open-Meteo HTTP client adapter, data model mappers | Application (implements its ports) |
 | **Frameworks & Drivers** | Spring Boot, Spring Data JPA/Hibernate, PostgreSQL, the scheduler trigger, `application.yml` | Everything (wires it together) |
 
 ## 2. Package structure
@@ -29,8 +29,8 @@ com.nortadas
 │   └── port/                (BeachRepositoryPort, WeatherClientPort — interfaces only)
 ├── infrastructure
 │   ├── persistence
-│   │   ├── entity/          (JPA @Entity data models: BeachEntity, RegionEntity, WeatherReadingEntity)
-│   │   ├── mapper/          (domain <-> entity mappers)
+│   │   ├── datamodel/       (JPA @Entity data models: BeachDataModel, RegionDataModel, WeatherReadingDataModel)
+│   │   ├── mapper/          (domain <-> data model mappers)
 │   │   └── repository/      (Spring Data JPA repos + adapter implementing *Port)
 │   └── weather
 │       └── OpenMeteoClientAdapter   (implements WeatherClientPort)
@@ -54,11 +54,15 @@ A recurring Clean Architecture mistake is letting one class serve two layers. Th
 three distinct model types, mapped explicitly at the boundaries:
 
 - **Domain object** (`domain/`) — pure business object, enforces its own invariants (as `Name`,
-  `Region` already do). Pure Java only — see §3.1.
-- **Data model / ORM entity** (`infrastructure/persistence/entity/`) — `@Entity` classes shaped
-  for Hibernate/JPA. Can be denormalized or structured differently from the domain object.
+  `Region` already do). Pure Java only — see §3.1. Construction is factorized behind a dedicated
+  `*Factory` per aggregate root (`BeachFactory`, `RegionFactory`) rather than exposed constructors —
+  see §7.
+- **Data model** (`infrastructure/persistence/datamodel/`) — `@Entity` classes shaped for
+  Hibernate/JPA, named `*DataModel` (e.g. `BeachDataModel`) rather than `*Entity` to avoid clashing
+  with the DDD sense of "entity" used for domain objects like `Beach`/`Region`. Can be denormalized
+  or structured differently from the domain object.
 - **DTO** (`web/dto/`) — wire format returned to clients, shaped for the API contract (HAL+JSON,
-  `_links`, pagination), independent of both the domain and the entity.
+  `_links`, pagination), independent of both the domain and the data model.
 
 ### 3.1 The domain layer is pure Java — no frameworks, including Lombok
 
@@ -73,8 +77,8 @@ build tomorrow. Lombok is a compile-time annotation processor — convenient, bu
 dependency the domain would be coupled to, so it's excluded here on the same principle as the rest.
 
 **This ban is scoped to `domain/` only.** Every other layer may use frameworks freely — Lombok in
-`infrastructure/persistence/entity` JPA entities, `web/dto` DTOs, adapters, and config is fine and
-encouraged where it cuts boilerplate. Purity is a property we buy for the business rules
+`infrastructure/persistence/datamodel` JPA data models, `web/dto` DTOs, adapters, and config is fine
+and encouraged where it cuts boilerplate. Purity is a property we buy for the business rules
 specifically, not a project-wide style rule.
 
 Mapping between them is an explicit, testable step (`mapper` classes) — never shared inheritance,
@@ -87,7 +91,7 @@ BeachController
   → web/dto request
   → application/usecase.GetBeachListUseCase
       → application/port.BeachRepositoryPort (interface)
-          → infrastructure/persistence adapter → Spring Data JPA → BeachEntity
+          → infrastructure/persistence adapter → Spring Data JPA → BeachDataModel
           → persistence mapper → domain.Beach
       → domain.NortadaDetectionService (per beach)
   → web/mapper → web/dto.BeachResponse (HAL+JSON)
@@ -130,10 +134,12 @@ BeachController
 ## 7. GoF patterns expected in this codebase
 
 - **Strategy** — Nortada detection rule, pluggable so alternate rule sets can be swapped in later.
-- **Adapter** — `OpenMeteoClientAdapter` (external API → `WeatherClientPort`); entity/domain
+- **Adapter** — `OpenMeteoClientAdapter` (external API → `WeatherClientPort`); data model/domain
   mappers.
-- **Builder/Factory** — constructing value objects/aggregates that must satisfy invariants at
-  construction time (matches the existing constructor-validation style in `domain/`).
+- **Builder/Factory** — a dedicated `*Factory` per aggregate root (`BeachFactory`, `RegionFactory`)
+  is the sole public entry point for constructing that aggregate: it exposes named `create`/
+  `rehydrate` methods instead of overloaded constructors, and the aggregate's own constructors are
+  package-private so callers outside the aggregate's package cannot bypass the factory.
 - **Repository** — persistence hidden behind a port, implemented by Spring Data JPA.
 - **Facade** — use case classes present one coordinating method per client-facing operation, even
   when multiple domain services/ports are involved underneath.
@@ -141,8 +147,8 @@ BeachController
 ## 8. Persistence (ORM)
 
 - Spring Data JPA + Hibernate is the ORM (per `US007`).
-- ORM entities live only in `infrastructure/persistence/entity` — the domain layer never carries
-  `@Entity`/`@Table`/`@Column` annotations.
+- ORM data models live only in `infrastructure/persistence/datamodel` — the domain layer never
+  carries `@Entity`/`@Table`/`@Column` annotations.
 - Persistence adapters implement the `application/port` interfaces; nothing outside
   `infrastructure` references Spring Data types directly.
 

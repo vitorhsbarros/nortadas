@@ -17,22 +17,30 @@ class RegionTest {
     // --- creation --------------------------------------------------------
 
     @Test
-    @DisplayName("creating a region generates its own identity")
-    void createConstructorGeneratesIdentity() {
+    @DisplayName("creating a region derives its own identity from its name")
+    void createConstructorDerivesIdentity() {
         Region region = new Region(new Name("Norte"));
         assertNotNull(region.getRegionId());
+        assertEquals(RegionId.of("NOR"), region.getRegionId());
         assertEquals(new Name("Norte"), region.getName());
     }
 
     @Test
-    void createConstructorGeneratesDistinctIdentities() {
-        assertNotEquals(new Region(new Name("Norte")), new Region(new Name("Norte")));
+    @DisplayName("identity derivation is deterministic: same name yields the same id")
+    void createConstructorIsDeterministicPerName() {
+        assertEquals(new Region(new Name("Norte")), new Region(new Name("Norte")));
+    }
+
+    @Test
+    @DisplayName("regions with different names get different derived identities")
+    void createConstructorGeneratesDistinctIdentitiesForDistinctNames() {
+        assertNotEquals(new Region(new Name("Norte")), new Region(new Name("Centro")));
     }
 
     @Test
     @DisplayName("rehydration constructor keeps the given identity")
     void rehydrationConstructorKeepsGivenIdentity() {
-        RegionId id = RegionId.newId(new Name("Centro"));
+        RegionId id = RegionId.fromName(new Name("Centro"));
         Region region = new Region(id, new Name("Centro"));
         assertEquals(id, region.getRegionId());
         assertEquals(new Name("Centro"), region.getName());
@@ -50,7 +58,7 @@ class RegionTest {
     @Test
     void rejectsNullName() {
         IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
-                () -> new Region(RegionId.newId(new Name("Norte")), null));
+                () -> new Region(RegionId.fromName(new Name("Norte")), null));
         assertEquals("Region name cannot be null!", ex.getMessage());
     }
 
@@ -70,7 +78,7 @@ class RegionTest {
     @Test
     @DisplayName("regions with the same id are equal even with different names")
     void regionsWithSameIdAreEqualRegardlessOfName() {
-        RegionId id = RegionId.newId(new Name("Norte"));
+        RegionId id = RegionId.of("NOR");
         Region first = new Region(id, new Name("Norte"));
         Region second = new Region(id, new Name("Algarve"));
         assertEquals(first, second);
@@ -81,8 +89,8 @@ class RegionTest {
     @DisplayName("regions with different ids are not equal even with the same name")
     void regionsWithDifferentIdsAreNotEqualDespiteSameName() {
         assertNotEquals(
-                new Region(RegionId.newId(new Name("Norte")), new Name("Norte")),
-                new Region(RegionId.newId(new Name("Norte")), new Name("Norte")));
+                new Region(RegionId.of("NOR"), new Name("Norte")),
+                new Region(RegionId.of("CEN"), new Name("Norte")));
     }
 
     @Test
@@ -97,7 +105,7 @@ class RegionTest {
     @Test
     @DisplayName("same id + identical name => equals AND sameAs")
     void sameIdSameNameIsEqualAndSameAs() {
-        RegionId id = RegionId.newId(new Name("Norte"));
+        RegionId id = RegionId.of("NOR");
         Region first = new Region(id, new Name("Norte"));
         Region second = new Region(id, new Name("Norte"));
         assertEquals(first, second);
@@ -107,7 +115,7 @@ class RegionTest {
     @Test
     @DisplayName("same id + different name => equals but NOT sameAs")
     void sameIdDifferentNameIsEqualButNotSameAs() {
-        RegionId id = RegionId.newId(new Name("Norte"));
+        RegionId id = RegionId.of("NOR");
         Region first = new Region(id, new Name("Norte"));
         Region second = new Region(id, new Name("Algarve"));
         assertEquals(first, second);
@@ -117,8 +125,8 @@ class RegionTest {
     @Test
     @DisplayName("different id + identical name => neither equals nor sameAs")
     void differentIdSameNameIsNeitherEqualNorSameAs() {
-        Region first = new Region(RegionId.newId(new Name("Norte")), new Name("Norte"));
-        Region second = new Region(RegionId.newId(new Name("Norte")), new Name("Norte"));
+        Region first = new Region(RegionId.of("NOR"), new Name("Norte"));
+        Region second = new Region(RegionId.of("CEN"), new Name("Norte"));
         assertNotEquals(first, second);
         assertFalse(first.sameAs(second));
     }
@@ -132,7 +140,7 @@ class RegionTest {
 
     @Test
     void toStringContainsIdAndName() {
-        RegionId id = RegionId.newId(new Name("Norte"));
+        RegionId id = RegionId.of("NOR");
         String rendered = new Region(id, new Name("Norte")).toString();
         assertTrue(rendered.contains(id.toString()));
         assertTrue(rendered.contains("Norte"));

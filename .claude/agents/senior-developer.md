@@ -48,7 +48,7 @@ that violates the layering is a defect, not a shortcut.
   persistence boundaries, Repository behind a port, Facade for use cases — rather than reinventing
   them ad hoc.
 - **Confine ORM annotations** (`@Entity`, `@Table`, `@Column`, …) to
-  `infrastructure/persistence/entity`, with an explicit mapper translating entity ↔ domain.
+  `infrastructure/persistence/datamodel`, with an explicit mapper translating data model ↔ domain.
 - **Place every new class** in the package `docs/architecture.md` says it belongs in.
 
 ## Testability is your responsibility, comprehensive tests are not

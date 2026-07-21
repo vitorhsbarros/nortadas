@@ -12,6 +12,11 @@ import com.nortadas.domain.valueobject.RegionId;
  * <p>Equality is identity-based ({@link RegionId}), as for any domain entity:
  * two regions are {@code equals} when they share an id, regardless of name. To
  * compare descriptive state as well, use {@link #sameAs(Region)}.
+ *
+ * <p>Construction is factorized in {@link RegionFactory} (GoF Factory /
+ * GRASP Creator): callers outside this package go through
+ * {@code RegionFactory.create}/{@code rehydrate} rather than these
+ * constructors directly.
  */
 public class Region {
 
@@ -19,16 +24,16 @@ public class Region {
     private final Name name;
 
     /**
-     * Creates a new region, generating its own identity from its name (GRASP
-     * Creator). The name-derived prefix inside the id is a snapshot at creation:
-     * renaming a region later does not change its identity.
+     * Creates a new region, deriving its own identity from its name. The
+     * derivation is a snapshot at creation: renaming a region later does not
+     * change its identity.
      */
-    public Region(Name name) {
-        this(RegionId.newId(name), name);
+    Region(Name name) {
+        this(RegionId.fromName(name), name);
     }
 
     /** Rehydrates a region with a known identity (e.g. loaded from persistence). */
-    public Region(RegionId regionId, Name name) {
+    Region(RegionId regionId, Name name) {
 
         if (regionId == null) {
             throw new IllegalArgumentException("Region id cannot be null!");

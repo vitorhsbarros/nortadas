@@ -70,8 +70,8 @@ a comment to fill out the list.
   (Strategy for detection rules, Adapter for the external API/persistence boundary, Repository,
   Facade for use cases), does the diff follow it, or reinvent the same shape ad hoc?
 - **Persistence** — are ORM annotations (`@Entity`, `@Table`, `@Column`, etc.) confined to
-  `infrastructure/persistence/entity`? Is there an explicit mapper translating entity ↔ domain, or
-  is the mapping implicit/missing?
+  `infrastructure/persistence/datamodel`? Is there an explicit mapper translating data model ↔
+  domain, or is the mapping implicit/missing?
 - **Package placement** — is every new class in the package `docs/architecture.md` says it
   belongs in?
 
