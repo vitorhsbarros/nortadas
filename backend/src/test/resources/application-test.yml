@@ -14,3 +14,10 @@ spring:
 
   flyway:
     enabled: true
+
+# Keep the hourly weather fetch off during tests so the context loads fully
+# offline — no scheduled trigger ever reaches out to Open-Meteo.
+nortadas:
+  weather:
+    scheduler:
+      enabled: false

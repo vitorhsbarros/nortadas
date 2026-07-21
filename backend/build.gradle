@@ -90,6 +90,7 @@ tasks.named('jacocoTestCoverageVerification') {
                     'com.nortadas.domain.municipality',
                     'com.nortadas.domain.region',
                     'com.nortadas.domain.favourite',
+                    'com.nortadas.domain.weatherreading',
                     'com.nortadas.domain.valueobject'
             ]
             limit {
