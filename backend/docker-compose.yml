@@ -1,0 +1,22 @@
+# Local PostgreSQL for the Nortadas backend. The credentials match the defaults
+# in src/main/resources/application.yml (local development only).
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: nortadas-postgres
+    environment:
+      POSTGRES_DB: nortadas
+      POSTGRES_USER: nortadas
+      POSTGRES_PASSWORD: nortadas
+    ports:
+      - "5432:5432"
+    volumes:
+      - nortadas-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U nortadas -d nortadas"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  nortadas-pgdata:

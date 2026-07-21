@@ -200,8 +200,6 @@ gradle-app.setting
 # Java heap dump
 *.hprof
 
-application.yml
-application-*.yml
 *.env
 
 ### Claude Code ###

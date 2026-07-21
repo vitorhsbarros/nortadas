@@ -1,0 +1,16 @@
+# Test profile: in-memory H2 in PostgreSQL compatibility mode, so the Spring
+# context (including the Flyway migration) can be verified in the build without
+# a running PostgreSQL instance. H2 support ships inside flyway-core.
+spring:
+  datasource:
+    url: jdbc:h2:mem:nortadas;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: ""
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+
+  flyway:
+    enabled: true
