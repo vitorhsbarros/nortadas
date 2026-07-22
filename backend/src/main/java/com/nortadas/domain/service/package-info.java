@@ -12,4 +12,4 @@
  * Pure Java only, like the rest of the domain layer (docs/architecture.md
  * §3.1): no Spring, no Lombok, no framework of any kind.
  */
-package com.nortadas.domain.detection;
+package com.nortadas.domain.service;
