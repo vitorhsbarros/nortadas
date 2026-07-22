@@ -87,7 +87,7 @@ tasks.named('jacocoTestCoverageVerification') {
             includes = [
                     'com.nortadas.domain',
                     'com.nortadas.domain.beach',
-                    'com.nortadas.domain.detection',
+                    'com.nortadas.domain.service',
                     'com.nortadas.domain.municipality',
                     'com.nortadas.domain.region',
                     'com.nortadas.domain.favourite',

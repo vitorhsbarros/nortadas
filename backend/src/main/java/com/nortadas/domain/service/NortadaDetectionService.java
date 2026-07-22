@@ -1,4 +1,4 @@
-package com.nortadas.domain.detection;
+package com.nortadas.domain.service;
 
 import com.nortadas.domain.valueobject.NortadaStatus;
 import com.nortadas.domain.weatherreading.WeatherReading;

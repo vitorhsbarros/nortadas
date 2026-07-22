@@ -61,6 +61,12 @@ with a detached `git worktree` at the tip commit rather than trusting the workin
   - `domain.valueobject` — every value object, including ones that read as "beach concepts" but have no
     identity and value-based equality: `BeachId`, `MunicipalityId`, `RegionId`, `Latitude`, `Longitude`,
     `WindSpeed`, `WindDirection`, `Name`, `WeatherReading`, `NortadaStatus`
+  - `domain.service` — the domain's non-aggregate behavioral package: `NortadaDetectionService` (the entry
+    point), `NortadaDetectionStrategy` (GoF Strategy seam), `SectorSpeedDetectionStrategy` (default rule,
+    US010). Named to mirror `application.usecase` on the other side of the layer boundary — package name
+    alone should tell you which "service" (domain vs application) you're looking at, since
+    `NortadaDetectionService` is plain Java with no Spring annotation, while `application.usecase` classes
+    are `@Service`-annotated Spring beans.
   - Dependency direction is one-way: `valueobject` must never import from an aggregate package
     (`beach`/`municipality`/`region`). If you need a `{@link Beach}`-style Javadoc cross-reference from
     inside `valueobject`, use the fully-qualified name in the tag instead of an import — a real import there
