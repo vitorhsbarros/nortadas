@@ -11,7 +11,13 @@ import org.springframework.stereotype.Component;
  * logic, only the schedule, and delegates to {@link FetchWeatherUseCase}.
  *
  * <p>The trigger interval is configurable via {@code nortadas.weather.scheduler.cron}
- * (top of every hour by default). The bean itself is gated behind
+ * — {@code hh:23:37} by default, <strong>not</strong> the top of the hour
+ * (issue #50). Live testing showed the scheduler firing at 13:00:00.000 sharp
+ * got HTTP 503 "The service is overloaded" from Open-Meteo for every single
+ * beach: hh:00:00 is the world's most common cron trigger time, so free-tier
+ * Open-Meteo sees a synchronized global load spike right on it. Landing on a
+ * non-round minute and a non-zero second avoids colliding with that
+ * thundering herd. The bean itself is gated behind
  * {@code nortadas.weather.scheduler.enabled} (default {@code true}) so it can be
  * switched off entirely — the {@code test} profile disables it so the context
  * loads without ever reaching out to the network.
