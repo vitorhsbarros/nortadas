@@ -6,18 +6,21 @@ import com.nortadas.application.port.BeachRepositoryPort;
 import com.nortadas.domain.beach.Beach;
 import com.nortadas.domain.valueobject.BeachId;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 
 /**
- * Verifies the US008 Flyway seed migration and the persistence slice together:
- * boots the full context against the H2 test profile (so V2 actually runs), then
- * loads every beach back through {@link BeachRepositoryPort}. Because the adapter
- * maps each row through the domain constructors, this also proves every seeded
- * value satisfies the domain invariants (Name rules, Latitude/Longitude bounds).
+ * Verifies the US008 Flyway seed migrations and the persistence slice together:
+ * boots the full context against the H2 test profile (so V2 and V5 actually
+ * run), then loads every beach back through {@link BeachRepositoryPort}.
+ * Because the adapter maps each row through the domain constructors, this
+ * also proves every seeded value satisfies the domain invariants (Name
+ * rules, Latitude/Longitude bounds).
  */
 @SpringBootTest
 @ActiveProfiles("test")
@@ -27,13 +30,17 @@ class SeededBeachDataTest {
     private BeachRepositoryPort beachRepository;
 
     @Test
-    void seedsTwentyNorteBeachesLoadableAsDomainObjects() {
+    void seedsFortyBeachesDistributedAcrossTheMainCoastalRegions() {
         List<Beach> beaches = beachRepository.findAll();
 
-        assertThat(beaches).hasSize(20);
-        assertThat(beaches)
-                .allSatisfy(beach ->
-                        assertThat(beach.getRegion().getName().getValue()).isEqualTo("Norte"));
+        assertThat(beaches).hasSize(40);
+
+        Set<String> distinctRegionNames = beaches.stream()
+                .map(beach -> beach.getRegion().getName().getValue())
+                .collect(Collectors.toSet());
+        assertThat(distinctRegionNames)
+                .containsExactlyInAnyOrder("Norte", "Centro", "Lisboa", "Alentejo", "Algarve");
+
         assertThat(beaches)
                 .extracting(beach -> beach.getName().getValue())
                 .contains("Praia de Moledo", "Praia Central de Espinho");
