@@ -5,8 +5,10 @@ import com.nortadas.domain.valueobject.BeachId;
 import com.nortadas.domain.weatherreading.WeatherReading;
 import com.nortadas.infrastructure.persistence.datamodel.WeatherReadingDataModel;
 import com.nortadas.infrastructure.persistence.mapper.WeatherReadingMapper;
+import java.time.Instant;
 import java.util.Optional;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Adapter implementing {@link WeatherReadingRepositoryPort} over Spring Data JPA
@@ -38,5 +40,19 @@ public class JpaWeatherReadingRepositoryAdapter implements WeatherReadingReposit
     public Optional<WeatherReading> findLatestByBeachId(BeachId beachId) {
         return jpaRepository.findFirstByBeachIdOrderByFetchedAtDesc(beachId.getValue())
                 .map(weatherReadingMapper::toDomain);
+    }
+
+    /**
+     * {@inheritDoc}
+     *
+     * <p>Delegates to a single bulk {@code DELETE}. Unlike {@link #save} and
+     * {@link #findLatestByBeachId}, which run inside Spring Data's built-in
+     * per-method transaction, a {@code @Modifying} bulk delete needs one opened
+     * explicitly, so this method is {@link Transactional}.
+     */
+    @Override
+    @Transactional
+    public int deleteOlderThan(Instant cutoff) {
+        return jpaRepository.deleteByFetchedAtBefore(cutoff);
     }
 }
