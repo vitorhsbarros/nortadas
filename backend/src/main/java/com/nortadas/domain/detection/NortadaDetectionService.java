@@ -9,19 +9,14 @@ import com.nortadas.domain.weatherreading.WeatherReading;
  * (GoF Strategy, OCP) while giving the application layer a single, stable
  * collaborator to call.
  *
- * <p>By default it uses {@link SectorSpeedDetectionStrategy}, the US010 rule
- * (N–NNW sector gate + graded km/h thresholds). Supply an alternate strategy via
- * {@link #NortadaDetectionService(NortadaDetectionStrategy)} to swap the rule
- * without touching callers.
+ * <p>The rule is injected: pass {@link SectorSpeedDetectionStrategy} for the
+ * US010 rule (N–NNW sector gate + graded km/h thresholds), or an alternate
+ * strategy to swap the rule without touching callers. The default is chosen
+ * where the service is wired (the {@code config} layer), not hardcoded here.
  */
 public final class NortadaDetectionService {
 
     private final NortadaDetectionStrategy strategy;
-
-    /** Uses the default US010 rule ({@link SectorSpeedDetectionStrategy}). */
-    public NortadaDetectionService() {
-        this(new SectorSpeedDetectionStrategy());
-    }
 
     /**
      * Uses the given detection rule.

@@ -29,9 +29,10 @@ class NortadaDetectionServiceTest {
     }
 
     @Test
-    @DisplayName("no-arg constructor uses the default US010 sector+speed rule")
-    void defaultStrategyAppliesUs010Rule() {
-        NortadaDetectionService service = new NortadaDetectionService();
+    @DisplayName("applies the US010 sector+speed rule when given SectorSpeedDetectionStrategy")
+    void appliesUs010RuleWithSectorSpeedStrategy() {
+        NortadaDetectionService service =
+                new NortadaDetectionService(new SectorSpeedDetectionStrategy());
 
         assertEquals(NortadaStatus.SEVERE, service.detect(reading(350.0, 60.0)));
         assertEquals(NortadaStatus.NONE, service.detect(reading(180.0, 60.0)));
