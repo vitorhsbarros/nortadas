@@ -26,6 +26,13 @@ spring:
 nortadas:
   weather:
     open-meteo:
-      # Consumed by the Open-Meteo client adapter arriving with US009
-      # ("Open-Meteo base URL is configurable via application.yml").
+      # Consumed by the Open-Meteo client adapter (US009). The adapter makes two
+      # calls per beach: the forecast API (wind + air temperature) under base-url,
+      # and the separate marine API (sea-surface temperature) under marine-base-url.
       base-url: ${OPEN_METEO_BASE_URL:https://api.open-meteo.com/v1}
+      marine-base-url: ${OPEN_METEO_MARINE_BASE_URL:https://marine-api.open-meteo.com/v1}
+    scheduler:
+      # Hourly weather fetch (US009). Cron is [second minute hour ...]; default is
+      # the top of every hour. Set enabled=false to switch the trigger off entirely.
+      enabled: ${WEATHER_SCHEDULER_ENABLED:true}
+      cron: ${WEATHER_SCHEDULER_CRON:0 0 * * * *}

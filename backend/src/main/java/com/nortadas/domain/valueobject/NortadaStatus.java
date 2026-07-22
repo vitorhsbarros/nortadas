@@ -1,7 +1,8 @@
 package com.nortadas.domain.valueobject;
 
 /**
- * The graded classification derived from a {@link WeatherReading}, reflecting how
+ * The graded classification derived from a
+ * {@link com.nortadas.domain.weatherreading.WeatherReading}, reflecting how
  * strong the Nortada is. Represents the <em>result</em> of the detection rule,
  * not the rule itself — the grading logic (wind-sector gate and km/h thresholds,
  * US010) lives in a dedicated detection service.
