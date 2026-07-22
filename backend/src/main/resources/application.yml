@@ -31,11 +31,26 @@ nortadas:
       # and the separate marine API (sea-surface temperature) under marine-base-url.
       base-url: ${OPEN_METEO_BASE_URL:https://api.open-meteo.com/v1}
       marine-base-url: ${OPEN_METEO_MARINE_BASE_URL:https://marine-api.open-meteo.com/v1}
+      # HTTP timeouts (issue #50) applied to both the forecast and marine
+      # RestClient instances, so a slow-but-not-erroring beach can't hang the
+      # sequential per-beach sweep indefinitely. Kept short since this is an
+      # unattended hourly background job over ~20 beaches: one bad beach
+      # should cost seconds, not minutes, before FetchWeatherUseCase's
+      # per-beach catch moves on to the next one.
+      connect-timeout: ${OPEN_METEO_CONNECT_TIMEOUT:5s}
+      read-timeout: ${OPEN_METEO_READ_TIMEOUT:10s}
     scheduler:
-      # Hourly weather fetch (US009). Cron is [second minute hour ...]; default is
-      # the top of every hour. Set enabled=false to switch the trigger off entirely.
+      # Hourly weather fetch (US009). Cron is [second minute hour ...]. The
+      # default deliberately fires at hh:23:37, NOT the top of the hour
+      # (issue #50): live testing showed the scheduler firing at 13:00:00.000
+      # sharp got HTTP 503 "The service is overloaded" from Open-Meteo for
+      # every single beach — the round hh:00:00 boundary is the world's most
+      # common cron trigger time, so free-tier Open-Meteo sees a synchronized
+      # global load spike right on it. Landing on a non-round minute AND a
+      # non-zero second avoids that thundering herd. Set enabled=false to
+      # switch the trigger off entirely.
       enabled: ${WEATHER_SCHEDULER_ENABLED:true}
-      cron: ${WEATHER_SCHEDULER_CRON:0 0 * * * *}
+      cron: ${WEATHER_SCHEDULER_CRON:37 23 * * * *}
     retention:
       # 7-day rolling retention for stored readings (issue #48). A daily purge
       # deletes every reading older than `days`; the window is strict (no

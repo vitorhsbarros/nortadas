@@ -32,6 +32,12 @@ import org.springframework.web.client.RestClient;
  *
  * <p>Both base URLs are configurable ({@code nortadas.weather.open-meteo.base-url}
  * and {@code nortadas.weather.open-meteo.marine-base-url}); neither is hardcoded.
+ *
+ * <p>Connect and read timeouts are applied to the injected {@link RestClient.Builder}
+ * by {@link com.nortadas.config.OpenMeteoHttpClientConfig} (issue #50), so a
+ * slow-but-not-erroring beach cannot hang the sequential per-beach sweep: a
+ * timeout surfaces as a {@code RuntimeException}, which
+ * {@code FetchWeatherUseCase}'s per-beach catch already isolates.
  */
 @Component
 public class OpenMeteoClientAdapter implements WeatherClientPort {
