@@ -14,6 +14,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.nortadas.application.port.WeatherReadingRepositoryPort;
 import com.nortadas.domain.valueobject.BeachId;
+import com.nortadas.domain.valueobject.WeatherCode;
 import com.nortadas.domain.valueobject.WindDirection;
 import com.nortadas.domain.valueobject.WindSpeed;
 import com.nortadas.domain.weatherreading.WeatherReadingFactory;
@@ -124,20 +125,24 @@ class BeachControllerIntegrationTest {
         mockMvc.perform(get("/api/beaches").param("size", "40"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$._embedded.beaches[*].nortadaStatus",
-                        everyItem(is("NONE"))));
+                        everyItem(is("NONE"))))
+                // With no readings, no beach carries a derived weatherCondition.
+                .andExpect(jsonPath("$._embedded.beaches[0].weatherCondition").doesNotExist());
     }
 
     @Test
-    @DisplayName("reflects a stored in-sector reading as the graded status")
+    @DisplayName("reflects a stored in-sector reading as the graded status and derived condition")
     void reflectsStoredReadingInStatus() throws Exception {
         BeachId espinho = new BeachId(UUID.fromString(ESPINHO_ID));
         // 340 deg is in-sector (N-NNW gate 315-45); 30 km/h grades to MODERATE.
+        // 61 is the WMO code for rain, so the derived condition is RAIN.
         weatherReadingRepository.save(WeatherReadingFactory.create(
                 espinho,
                 new WindSpeed(30.0),
                 new WindDirection(340.0),
                 18.0,
                 16.0,
+                new WeatherCode(61),
                 Instant.now()));
 
         mockMvc.perform(get("/api/beaches").param("size", "40"))
@@ -145,9 +150,13 @@ class BeachControllerIntegrationTest {
                 // Espinho is the first item; assert its status is the graded value.
                 .andExpect(jsonPath("$._embedded.beaches[0].id", is(ESPINHO_ID)))
                 .andExpect(jsonPath("$._embedded.beaches[0].nortadaStatus", is("MODERATE")))
+                // Its derived weather condition surfaces as a top-level summary.
+                .andExpect(jsonPath("$._embedded.beaches[0].weatherCondition", is("RAIN")))
                 // No other beach gained a status.
                 .andExpect(jsonPath("$._embedded.beaches[*].nortadaStatus",
-                        hasItem("MODERATE")));
+                        hasItem("MODERATE")))
+                // A beach without a reading has no weatherCondition key at all.
+                .andExpect(jsonPath("$._embedded.beaches[1].weatherCondition").doesNotExist());
     }
 
     @Test

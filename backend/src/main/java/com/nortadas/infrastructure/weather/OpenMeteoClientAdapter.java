@@ -6,6 +6,7 @@ import com.nortadas.application.port.WeatherClientPort;
 import com.nortadas.domain.valueobject.BeachId;
 import com.nortadas.domain.valueobject.Latitude;
 import com.nortadas.domain.valueobject.Longitude;
+import com.nortadas.domain.valueobject.WeatherCode;
 import com.nortadas.domain.valueobject.WindDirection;
 import com.nortadas.domain.valueobject.WindSpeed;
 import com.nortadas.domain.weatherreading.WeatherReading;
@@ -74,6 +75,7 @@ public class OpenMeteoClientAdapter implements WeatherClientPort {
                 new WindDirection(normalizeDirection(current.windDirection())),
                 current.airTemperature(),
                 waterTemperature,
+                new WeatherCode(current.weatherCode()),
                 Instant.now());
     }
 
@@ -82,7 +84,7 @@ public class OpenMeteoClientAdapter implements WeatherClientPort {
                 .uri(uriBuilder -> uriBuilder.path("/forecast")
                         .queryParam("latitude", latitude.getDegrees())
                         .queryParam("longitude", longitude.getDegrees())
-                        .queryParam("current", "wind_speed_10m,wind_direction_10m,temperature_2m")
+                        .queryParam("current", "wind_speed_10m,wind_direction_10m,temperature_2m,weather_code")
                         .queryParam("wind_speed_unit", "kmh")
                         .build())
                 .retrieve()
@@ -125,7 +127,8 @@ public class OpenMeteoClientAdapter implements WeatherClientPort {
     record ForecastCurrent(
             @JsonProperty("wind_speed_10m") double windSpeed,
             @JsonProperty("wind_direction_10m") double windDirection,
-            @JsonProperty("temperature_2m") double airTemperature) {
+            @JsonProperty("temperature_2m") double airTemperature,
+            @JsonProperty("weather_code") int weatherCode) {
     }
 
     /** JSON shape of the Open-Meteo marine response (only the fields we read). */

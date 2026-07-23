@@ -40,11 +40,15 @@ public class BeachDtoMapper {
     public BeachResponse toListItem(BeachStatusView view) {
         Beach beach = view.beach();
         UUID id = beach.getBeachId().getValue();
+        String condition = view.latestReading()
+                .map(r -> r.getWeatherCondition().name())
+                .orElse(null);
         BeachResponse response = new BeachResponse(
                 id,
                 beach.getName().getValue(),
                 beach.getRegion().getName().getValue(),
-                view.status().name());
+                view.status().name(),
+                condition);
         response.add(linkTo(BeachController.class).slash(id.toString()).withSelfRel());
         response.add(linkTo(BeachController.class).withRel(IanaLinkRelations.COLLECTION));
         return response;
@@ -67,12 +71,16 @@ public class BeachDtoMapper {
         WeatherReadingResponse reading = view.latestReading()
                 .map(this::toReadingResponse)
                 .orElse(null);
+        String condition = view.latestReading()
+                .map(r -> r.getWeatherCondition().name())
+                .orElse(null);
 
         BeachResponse response = new BeachResponse(
                 id,
                 beach.getName().getValue(),
                 beach.getRegion().getName().getValue(),
                 view.status().name(),
+                condition,
                 reading);
         response.add(linkTo(methodOn(BeachController.class).detail(id)).withSelfRel());
         response.add(linkTo(BeachController.class).withRel(IanaLinkRelations.COLLECTION));
@@ -84,6 +92,7 @@ public class BeachDtoMapper {
                 reading.getWindSpeed().getKmPerHour(),
                 reading.getWindDirection().getDegrees(),
                 reading.getTemperatureCelsius(),
+                reading.getWeatherCode().getValue(),
                 reading.getFetchedAt().toString());
     }
 

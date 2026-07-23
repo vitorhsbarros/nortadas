@@ -24,13 +24,18 @@ public class WeatherReadingResponse {
     /** Air temperature in degrees Celsius. */
     private final double temperature;
 
+    /** Raw WMO weather-interpretation code ({@code ww} code, 0–99). */
+    private final int weatherCode;
+
     /** When the reading was fetched, as an ISO-8601 instant string. */
     private final String fetchedAt;
 
-    public WeatherReadingResponse(double windSpeed, double windDirection, double temperature, String fetchedAt) {
+    public WeatherReadingResponse(double windSpeed, double windDirection, double temperature,
+                                  int weatherCode, String fetchedAt) {
         this.windSpeed = windSpeed;
         this.windDirection = windDirection;
         this.temperature = temperature;
+        this.weatherCode = weatherCode;
         this.fetchedAt = fetchedAt;
     }
 }

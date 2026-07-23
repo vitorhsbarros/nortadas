@@ -43,6 +43,9 @@ public class WeatherReadingDataModel {
     @Column(name = "water_temperature_celsius", nullable = false)
     private double waterTemperatureCelsius;
 
+    @Column(name = "weather_code", nullable = false)
+    private int weatherCode;
+
     @Column(name = "fetched_at", nullable = false)
     private Instant fetchedAt;
 
@@ -56,6 +59,7 @@ public class WeatherReadingDataModel {
                                    double windDirection,
                                    double temperatureCelsius,
                                    double waterTemperatureCelsius,
+                                   int weatherCode,
                                    Instant fetchedAt) {
         this.id = id;
         this.beachId = beachId;
@@ -63,6 +67,7 @@ public class WeatherReadingDataModel {
         this.windDirection = windDirection;
         this.temperatureCelsius = temperatureCelsius;
         this.waterTemperatureCelsius = waterTemperatureCelsius;
+        this.weatherCode = weatherCode;
         this.fetchedAt = fetchedAt;
     }
 }

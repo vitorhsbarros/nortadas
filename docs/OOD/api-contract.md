@@ -53,6 +53,7 @@ Collection resource in HAL: beaches under `_embedded.beaches`, page metadata und
         "name": "Praia de Matosinhos",
         "region": "Norte",
         "nortadaStatus": "MODERATE",
+        "weatherCondition": "CLOUDY",
         "_links": {
           "self": { "href": "https://api.nortada.pt/api/beaches/6f1c2e9a-4b2d-4f3a-9c1e-2a7b8c9d0e11" },
           "collection": { "href": "https://api.nortada.pt/api/beaches" }
@@ -63,6 +64,7 @@ Collection resource in HAL: beaches under `_embedded.beaches`, page metadata und
         "name": "Praia da Costa Nova",
         "region": "Centro",
         "nortadaStatus": "STRONG",
+        "weatherCondition": "CLEAR",
         "_links": {
           "self": { "href": "https://api.nortada.pt/api/beaches/8a2d3f0b-5c3e-4a4b-8d2f-3b8c9d0e1f22" },
           "collection": { "href": "https://api.nortada.pt/api/beaches" }
@@ -127,10 +129,12 @@ Item resource with a `_links` section carrying `self` and `collection`.
   "name": "Praia de Matosinhos",
   "region": "Norte",
   "nortadaStatus": "MODERATE",
+  "weatherCondition": "CLOUDY",
   "reading": {
     "windSpeed": 32.4,
     "windDirection": 340.0,
     "temperature": 19.5,
+    "weatherCode": 3,
     "fetchedAt": "2026-07-20T09:00:00Z"
   },
   "_links": {
@@ -139,6 +143,15 @@ Item resource with a `_links` section carrying `self` and `collection`.
   }
 }
 ```
+
+Notes:
+- `weatherCondition` (top level) is a **derived** coarse WMO weather category —
+  one of `CLEAR`, `CLOUDY`, `FOG`, `DRIZZLE`, `RAIN`, `SNOW`, `THUNDERSTORM`,
+  `UNKNOWN` — computed from the reading's raw code; `reading.weatherCode` is the
+  **raw** Open-Meteo WMO `weather_code` (integer 0–99) it is derived from. The
+  category also appears on each list item (top level).
+- `weatherCondition` is omitted entirely when a beach has no reading yet (the same
+  condition under which `reading` is absent).
 
 ### Response body (404) — problem detail
 

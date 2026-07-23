@@ -11,6 +11,7 @@ import static org.springframework.test.web.client.response.MockRestResponseCreat
 import com.nortadas.domain.valueobject.BeachId;
 import com.nortadas.domain.valueobject.Latitude;
 import com.nortadas.domain.valueobject.Longitude;
+import com.nortadas.domain.valueobject.WeatherCondition;
 import com.nortadas.domain.weatherreading.WeatherReading;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -48,7 +49,7 @@ class OpenMeteoClientAdapterTest {
         server.expect(requestTo(containsString(FORECAST_BASE + "/forecast")))
                 .andExpect(queryParam("latitude", "41.18"))
                 .andExpect(queryParam("longitude", "-8.7"))
-                .andExpect(queryParam("current", "wind_speed_10m,wind_direction_10m,temperature_2m"))
+                .andExpect(queryParam("current", "wind_speed_10m,wind_direction_10m,temperature_2m,weather_code"))
                 .andExpect(queryParam("wind_speed_unit", "kmh"))
                 .andRespond(withSuccess(json, MediaType.APPLICATION_JSON));
     }
@@ -62,9 +63,14 @@ class OpenMeteoClientAdapterTest {
     }
 
     private static String forecastJson(double windSpeed, double windDirection, double airTemp) {
+        return forecastJson(windSpeed, windDirection, airTemp, 0);
+    }
+
+    private static String forecastJson(double windSpeed, double windDirection, double airTemp, int weatherCode) {
         return "{\"current\":{\"wind_speed_10m\":" + windSpeed
                 + ",\"wind_direction_10m\":" + windDirection
-                + ",\"temperature_2m\":" + airTemp + "}}";
+                + ",\"temperature_2m\":" + airTemp
+                + ",\"weather_code\":" + weatherCode + "}}";
     }
 
     private static String marineJson(String seaSurfaceTemperature) {
@@ -74,7 +80,8 @@ class OpenMeteoClientAdapterTest {
     @Test
     @DisplayName("maps both endpoints into one reading and calls both configured base URLs")
     void mapsBothEndpointsIntoOneReading() {
-        expectForecast(forecastJson(32.5, 350.0, 21.4));
+        // 61 is the WMO code for rain, so the derived condition is RAIN.
+        expectForecast(forecastJson(32.5, 350.0, 21.4, 61));
         expectMarine(marineJson("18.2"));
 
         WeatherReading reading = adapter.fetchCurrent(BEACH_ID, LATITUDE, LONGITUDE);
@@ -84,6 +91,8 @@ class OpenMeteoClientAdapterTest {
         assertEquals(350.0, reading.getWindDirection().getDegrees());
         assertEquals(21.4, reading.getTemperatureCelsius());
         assertEquals(18.2, reading.getWaterTemperatureCelsius());
+        assertEquals(61, reading.getWeatherCode().getValue());
+        assertEquals(WeatherCondition.RAIN, reading.getWeatherCondition());
         server.verify();
     }
 
