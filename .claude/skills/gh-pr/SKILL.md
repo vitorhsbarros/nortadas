@@ -1,6 +1,8 @@
 ---
 name: gh-pr
 description: Drafts and opens GitHub pull requests for vitorhsbarros/nortadas using a fixed body template (Summary / Related issues / Test plan, with an optional Key design decisions section). Use this whenever the user asks to open, create, or file a pull request for this repo — "open a PR", "push and PR this branch", "let's get this merged", "/gh-pr" — even if they don't spell out the base/head branches or exact wording; infer those from the current branch and its commit history. Trigger any time work on a branch is ready to be proposed for merge, not just when the user says "pull request" literally.
+model: haiku
+effort: high
 ---
 
 # gh-pr

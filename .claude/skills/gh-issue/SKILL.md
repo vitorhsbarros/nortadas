@@ -1,6 +1,8 @@
 ---
 name: gh-issue
 description: Drafts and creates GitHub issues on vitorhsbarros/nortadas using the project's fixed template (description / sub-issues / acceptance criteria), including real linked GitHub sub-issues via the gh CLI. Use this whenever the user asks to create, file, write, open, or draft a GitHub issue for the nortadas project — e.g. "create an issue for X", "file a bug about Y", "open an issue to refactor the Beach class", "/gh-issue" — or wants a piece of work broken into sub-issues/tasks tracked on GitHub, or references a User Story from docs/user-stories/ that should become an issue. Trigger even if the user doesn't mention gh, GitHub, or the template by name — any request to turn a piece of work into a tracked issue for this repo qualifies.
+model: haiku
+effort: high
 ---
 
 # gh-issue
