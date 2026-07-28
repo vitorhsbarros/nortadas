@@ -86,6 +86,7 @@ public class BeachDtoMapper {
                 reading.getWindSpeed().getKmPerHour(),
                 reading.getWindDirection().getDegrees(),
                 reading.getTemperatureCelsius(),
+                reading.getWaterTemperatureCelsius(),
                 reading.getWeatherCode().getValue(),
                 reading.getFetchedAt().toString());
     }

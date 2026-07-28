@@ -134,6 +134,7 @@ Item resource with a `_links` section carrying `self` and `collection`.
     "windSpeed": 32.4,
     "windDirection": 340.0,
     "temperature": 19.5,
+    "waterTemperature": 18.2,
     "weatherCode": 3,
     "fetchedAt": "2026-07-20T09:00:00Z"
   },
@@ -152,6 +153,8 @@ Notes:
   category also appears on each list item (top level).
 - `weatherCondition` is omitted entirely when a beach has no reading yet (the same
   condition under which `reading` is absent).
+- `reading.waterTemperature` is the sea-surface temperature (Celsius) from the
+  Open-Meteo marine API, fetched alongside the rest of the reading.
 
 ### Response body (404) — problem detail
 

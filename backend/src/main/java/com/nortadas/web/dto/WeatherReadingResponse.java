@@ -26,6 +26,9 @@ public class WeatherReadingResponse {
     /** Air temperature in degrees Celsius. */
     private final double temperature;
 
+    /** Sea-surface (water) temperature in degrees Celsius. */
+    private final double waterTemperature;
+
     /** Raw WMO weather-interpretation code ({@code ww} code, 0–99). */
     private final int weatherCode;
 
