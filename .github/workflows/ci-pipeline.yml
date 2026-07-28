@@ -42,46 +42,123 @@ jobs:
         run: pip install semgrep
 
       # No SEMGREP_APP_TOKEN — this project has no Semgrep App account, so we run
-      # the open-source CLI standalone against a public ruleset instead of semgrep ci.
-      # p/java keeps a first cut low-noise; broaden to p/security-audit later once
-      # findings are triaged. --severity ERROR + --error fails the job (blocking gate)
-      # only on high/critical-equivalent findings, not every INFO/WARNING hit.
+      # the open-source CLI standalone against public rulesets instead of semgrep ci.
+      # --severity ERROR + --error fails the job (blocking gate) only on
+      # high/critical-equivalent findings, not every INFO/WARNING hit.
+      #
+      # p/java was the deliberate low-noise first cut; p/security-audit and
+      # p/owasp-top-ten were added after triaging them against the whole backend
+      # locally — 81 files scanned, zero findings — so the broader coverage costs
+      # no triage backlog.
       #
       # continue-on-error: true is deliberate: --error makes this step exit
       # non-zero on findings, which would otherwise skip the SARIF upload below
       # on exactly the runs where annotations matter most. The real pass/fail
       # verdict is restored by the "Enforce Semgrep result" step at the end,
-      # after the SARIF has already been uploaded.
-      - name: Run Semgrep SAST scan
-        id: semgrep
+      # after every SARIF has already been uploaded.
+      - name: Run Semgrep SAST scan (backend)
+        id: semgrep_backend
         continue-on-error: true
         run: |
           semgrep scan \
             --config p/java \
+            --config p/security-audit \
+            --config p/owasp-top-ten \
             --severity ERROR \
             --error \
             --metrics=off \
-            --sarif-output=semgrep.sarif \
+            --sarif-output=semgrep-backend.sarif \
             backend/src/main/java backend/src/test/java
 
-      - name: Upload SARIF to GitHub code scanning
+      - name: Upload backend SARIF to GitHub code scanning
         if: always()
         uses: github/codeql-action/upload-sarif@v4
         with:
-          sarif_file: semgrep.sarif
+          sarif_file: semgrep-backend.sarif
+          # Distinct category per scan, otherwise the second upload replaces the
+          # first one's results in code scanning instead of sitting alongside it.
+          category: semgrep-backend
 
+      # The mobile app (US014, #70) does not exist yet. Gating on mobile/package.json
+      # rather than adding the paths unconditionally means this step no-ops cleanly
+      # today — semgrep exits non-zero on a missing target path, which would turn
+      # the whole gate red — and starts enforcing by itself the moment the Expo
+      # project lands, with no workflow edit needed to switch it on.
+      - name: Run Semgrep SAST scan (mobile)
+        id: semgrep_mobile
+        if: hashFiles('mobile/package.json') != ''
+        continue-on-error: true
+        run: |
+          semgrep scan \
+            --config p/typescript \
+            --config p/react \
+            --config p/security-audit \
+            --severity ERROR \
+            --error \
+            --metrics=off \
+            --sarif-output=semgrep-mobile.sarif \
+            mobile
+
+      - name: Upload mobile SARIF to GitHub code scanning
+        if: always() && hashFiles('mobile/package.json') != ''
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: semgrep-mobile.sarif
+          category: semgrep-mobile
+
+      # Skipped steps report outcome 'skipped', not 'failure', so the mobile check
+      # is inert until the app exists.
       - name: Enforce Semgrep result
-        if: steps.semgrep.outcome == 'failure'
+        if: steps.semgrep_backend.outcome == 'failure' || steps.semgrep_mobile.outcome == 'failure'
         run: |
           echo "Semgrep found ERROR-severity findings — see the Security tab for inline annotations."
+          echo "  backend scan: ${{ steps.semgrep_backend.outcome }}"
+          echo "  mobile scan:  ${{ steps.semgrep_mobile.outcome }}"
           exit 1
 
   build-and-test-with-coverage:
     name: Build and Test with Coverage
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
-      - name: Placeholder
-        run: echo "Build and Test with Coverage Stage - coming in Phase 1"
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Verifies gradle-wrapper.jar against Gradle's published checksums. The
+      # wrapper is an executable binary committed to the repo, so a tampered one
+      # would run arbitrary code on every CI build and every developer machine.
+      - name: Validate Gradle wrapper
+        uses: gradle/actions/wrapper-validation@v4
+
+      # Java 21 matches the toolchain pinned in backend/build.gradle.
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: temurin
+          cache: gradle
+
+      # No Docker or PostgreSQL needed: the test profile boots the full Spring
+      # context, Flyway migration included, against H2 in PostgreSQL-compatibility
+      # mode (backend/src/test/resources/application-test.yml).
+      #
+      # `build` is the whole gate on its own — it depends on `check`, which
+      # backend/build.gradle wires to `jacocoTestCoverageVerification`, so the
+      # >=95% line and branch thresholds on com.nortadas.domain* fail the job
+      # here rather than needing a separate coverage step.
+      - name: Build, test and verify coverage
+        run: ./gradlew build --no-daemon --console=plain
+
+      # Uploaded on failure too — a coverage-gate failure is exactly when someone
+      # needs the HTML report to see which lines or branches went uncovered.
+      - name: Upload JaCoCo coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: jacoco-coverage-report
+          path: backend/build/reports/jacoco/test/
+          if-no-files-found: warn
 
   sca:
     name: Software Composition Analysis
