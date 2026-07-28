@@ -7,7 +7,10 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 /**
  * JPA data model for the {@code municipality} table (docs/architecture.md §3,
@@ -28,6 +31,8 @@ import lombok.Getter;
 @Entity
 @Table(name = "municipality")
 @Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@AllArgsConstructor
 public class MunicipalityDataModel {
 
     @Id
@@ -40,14 +45,4 @@ public class MunicipalityDataModel {
     @ManyToOne(optional = false, fetch = FetchType.EAGER)
     @JoinColumn(name = "region_id", nullable = false)
     private RegionDataModel region;
-
-    /** Required by JPA; not for application use. */
-    protected MunicipalityDataModel() {
-    }
-
-    public MunicipalityDataModel(String id, String name, RegionDataModel region) {
-        this.id = id;
-        this.name = name;
-        this.region = region;
-    }
 }
