@@ -30,12 +30,10 @@ public class BeachDtoMapper {
      * (the beach's detail URI {@code /api/beaches/{id}}) and {@code collection}
      * ({@code /api/beaches}) links.
      *
-     * <p>The {@code self} link is built structurally from
-     * {@link BeachController} rather than via a controller method reference,
-     * because the detail endpoint ({@code GET /api/beaches/{id}}) does not exist
-     * yet (US012/#17): {@code linkTo(BeachController.class).slash(id)} yields the
-     * same {@code /api/beaches/{id}} URI without depending on a {@code detail(...)}
-     * method.
+     * <p>The {@code self} link is built from {@link BeachController#detail(UUID)}
+     * via a method reference, same as {@link #toDetail(BeachStatusView)}, so both
+     * places the detail URI is generated stay coupled to the real mapping rather
+     * than a hand-written path that could silently drift from it.
      */
     public BeachResponse toListItem(BeachStatusView view) {
         Beach beach = view.beach();
@@ -49,7 +47,7 @@ public class BeachDtoMapper {
                 beach.getRegion().getName().getValue(),
                 view.status().name(),
                 condition);
-        response.add(linkTo(BeachController.class).slash(id.toString()).withSelfRel());
+        response.add(linkTo(methodOn(BeachController.class).detail(id)).withSelfRel());
         response.add(linkTo(BeachController.class).withRel(IanaLinkRelations.COLLECTION));
         return response;
     }
@@ -59,10 +57,6 @@ public class BeachDtoMapper {
      * {@code GET /api/beaches/{id}} (US012): the same identity/name/region/status
      * as a list item, plus the optional {@code reading} block when the beach has a
      * latest stored reading, and {@code self} / {@code collection} links.
-     *
-     * <p>Unlike {@link #toListItem(BeachStatusView)}, the {@code self} link is
-     * built from the now-existing {@link BeachController#detail(UUID)} method so
-     * the URI stays coupled to the mapping rather than a hand-written path.
      */
     public BeachResponse toDetail(BeachStatusView view) {
         Beach beach = view.beach();
