@@ -162,10 +162,14 @@ with a detached `git worktree` at the tip commit rather than trusting the workin
     revisit with a paged port method if it grows.
 - `docs/OOA/nortada-OOA.puml` (analysis) and `docs/OOD/nortada-OOD.puml` (design, with operations/visibility
   and the full application/infrastructure/web class set) hold the PlantUML diagrams behind the architecture;
-  `docs/OOD/sequences/` has the key interaction flows; `docs/OOD/api-contract.md` defines the REST Level 3
-  HATEOAS/HAL+JSON contract for the beach endpoints; `docs/OOD/design-decisions.md` records the ADRs (e.g.
-  scheduled vs on-demand fetch). Consult these before introducing new domain types, endpoints, or
-  relationships.
+  `docs/OOD/sequences/` has the three interaction flows — `beach-request-flows.puml` (both endpoints,
+  including the 400/404 problem-detail paths), `scheduler-fetch-weather.puml` (hourly fetch; note detection
+  deliberately does *not* run there) and `scheduler-retention-purge.puml` (daily purge);
+  `docs/OOD/api-contract.md` defines the REST Level 3 HATEOAS/HAL+JSON contract for the beach endpoints;
+  `docs/OOD/design-decisions.md` records the ADRs (e.g. scheduled vs on-demand fetch) plus an
+  *Implementation status* section listing the deliberate deviations from the original design. Consult these
+  before introducing new domain types, endpoints, or relationships. **These diagrams are kept in step with
+  the code — where they disagree, the code wins and the diagram is a bug worth fixing in the same PR.**
 - `docs/architecture.md` defines the target Clean Architecture layering (domain / application / infrastructure /
   web), the SOLID/GRASP/GoF conventions, and the rule that domain objects, ORM data models (`*DataModel`), and
   DTOs stay separate types mapped at layer boundaries — consult it before adding new classes or packages.

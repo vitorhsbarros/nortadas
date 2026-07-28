@@ -129,18 +129,34 @@ Facade hides the multi-collaborator orchestration; each use case has one reason 
 
 ---
 
-## Design-only types pending scaffolding (US007)
+## Implementation status
 
-The class diagram introduces types that do **not** exist in `domain/` yet and are design
-blueprints to be created during backend scaffolding (US007):
+The scaffolding this section once listed as pending (US007) is **done** — every value object,
+domain service, use case, port, data model, mapper, adapter, controller and DTO in
+`nortada-OOD.puml` now exists, and `domain/` is fully pure Java (no Lombok, no Spring). The
+diagram is kept in step with the code; where the two disagree, the code wins and the diagram is
+a bug.
 
-- Value objects: `BeachId`, `Latitude`, `Longitude`, `WindSpeed`, `WindDirection`, `Email`.
-- Domain service/strategy: `NortadaDetectionService`, `NortadaDetectionStrategy`,
-  `SectorSpeedDetectionStrategy`.
-- Application: all `*UseCase`, `*Port`, `BeachStatusView`.
-- Infrastructure: JPA entities, mappers, repository adapters, `OpenMeteoClientAdapter`.
-- Web: `BeachController`, DTOs, `BeachDtoMapper`.
+Two design-time types were **never built** and are intentionally absent from the diagram:
 
-Today `domain/` contains only `Beach`, `Region`, `Name`, `WeatherReading` (stub),
-`NortadaStatus` (stub enum) and `FavouriteBeaches` (stub), some still using Lombok pending
-migration to pure Java (`CLAUDE.md`, `architecture.md` section 3.1).
+- `User` and the `Email` value object — no authenticated user story has been implemented yet.
+  `FavouriteBeaches` exists as its own aggregate awaiting that linkage.
+
+Deviations from the original design worth knowing, each deliberate:
+
+- **`Municipality` was added** between `Beach` and `Region` (`Beach -> Municipality -> Region`),
+  so beaches can be filtered more finely than the seven NUTS-II regions. `Beach.getRegion()` is
+  derived through the municipality rather than stored.
+- **`BeachRepositoryPort` is unpaged** (`findAll() : List<Beach>`). Pagination is expressed with
+  the application layer's own `PageResult<T>` and applied in memory, so no Spring Data
+  `Page`/`Pageable` leaks inward (`architecture.md` §1). Revisit with a paged port method if the
+  catalogue outgrows it.
+- **There is no `BeachListResponse` DTO** — the list endpoint returns Spring HATEOAS's
+  `PagedModel<BeachResponse>`.
+- **Detection does not run during the fetch.** `FetchWeatherUseCase` stores raw readings only;
+  `NortadaStatus` and `WeatherCondition` are derived at read time and never persisted (ADR-005),
+  so the rules can change without a data migration.
+- **Persistence classes are named for their role**: `*Mapper` (not `*PersistenceMapper`) and
+  `Jpa*RepositoryAdapter` (not `*RepositoryAdapter`).
+- **Wiring is split across purpose-specific `config` classes** (`DetectionConfig`, `ClockConfig`,
+  `OpenMeteoHttpClientConfig`, `SchedulingConfig`, `SecurityConfig`) rather than one `AppConfig`.

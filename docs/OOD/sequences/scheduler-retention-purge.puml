@@ -1,0 +1,89 @@
+@startuml
+title Nortadas - Scheduler Flow: purge readings outside the retention window
+
+'Formatting
+skinparam monochrome false
+skinparam defaultFontName Futura
+skinparam backgroundColor #adb5bd
+skinparam ArrowFontColor #141414
+skinparam ArrowColor #141414
+skinparam ArrowFontSize 13
+skinparam ArrowThickness 2
+skinparam sequence {
+    ParticipantBackgroundColor #4c6ef5
+    ParticipantFontColor #ffffff
+    ParticipantBorderColor #364fc7
+    ActorBackgroundColor #4c6ef5
+    ActorFontColor #ffffff
+    LifeLineBorderColor #364fc7
+    LifeLineBackgroundColor #dbe4ff
+}
+skinparam note {
+    BackgroundColor #4c6ef5
+    FontColor #ffffff
+    BorderColor #364fc7
+}
+
+' Daily rolling retention for stored weather readings (issue #48).
+
+participant "WeatherRetentionScheduler\n<<scheduler>>" as Scheduler
+participant "PurgeOldWeatherReadingsUseCase\n<<application>>" as UseCase
+participant "Clock\n<<injected>>" as Clock
+participant "WeatherReadingRepositoryPort\n<<port>>" as ReadingRepo
+participant "JpaWeatherReadingRepositoryAdapter\n<<infrastructure>>" as Adapter
+database "weather_reading\n<<PostgreSQL>>" as DB
+
+note over Scheduler
+  @Scheduled(cron = nortadas.weather.retention.cron),
+  default 0 0 0 * * * (daily at midnight). The bean is
+  gated behind nortadas.weather.retention.enabled, which
+  the test profile switches off.
+end note
+
+Scheduler -> UseCase : purgeOldWeatherReadings()\n-> purgeExpiredReadings()
+activate UseCase
+
+UseCase -> Clock : Instant.now(clock)
+activate Clock
+Clock --> UseCase : now
+deactivate Clock
+
+note right of UseCase
+  cutoff = now - retentionDays (default 7,
+  configurable via nortadas.weather.retention.days).
+  Clock is injected rather than calling Instant.now()
+  directly so the window is deterministic in tests.
+end note
+
+UseCase -> ReadingRepo : deleteOlderThan(cutoff)
+activate ReadingRepo
+ReadingRepo -> Adapter : deleteOlderThan(cutoff)
+activate Adapter
+
+note right of Adapter
+  @Transactional: a @Modifying bulk delete needs an
+  explicit transaction. One JPQL statement removes the
+  rows in bulk rather than loading and deleting each.
+end note
+
+Adapter -> DB : delete from weather_reading\nwhere fetched_at < :cutoff
+activate DB
+DB --> Adapter : rows deleted
+deactivate DB
+Adapter --> ReadingRepo : int deleted
+deactivate Adapter
+ReadingRepo --> UseCase : int deleted
+deactivate ReadingRepo
+
+UseCase -> UseCase : log "purge complete: N reading(s) removed"
+UseCase --> Scheduler : done
+deactivate UseCase
+
+note over UseCase, DB
+  The window is strict: there is no keep-the-latest-per-beach
+  exception, so a beach whose readings have all expired is left
+  with none - and its derived NortadaStatus/weatherCondition
+  simply fall back to NONE / omitted on the API (issue #48).
+end note
+
+@enduml
