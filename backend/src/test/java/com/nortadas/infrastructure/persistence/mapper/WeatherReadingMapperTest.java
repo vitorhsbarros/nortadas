@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.nortadas.domain.valueobject.BeachId;
+import com.nortadas.domain.valueobject.WeatherCode;
 import com.nortadas.domain.valueobject.WeatherReadingId;
 import com.nortadas.domain.valueobject.WindDirection;
 import com.nortadas.domain.valueobject.WindSpeed;
@@ -30,13 +31,15 @@ class WeatherReadingMapperTest {
     private static final WindDirection DIRECTION = new WindDirection(350.0);
     private static final double AIR_TEMPERATURE = 21.5;
     private static final double WATER_TEMPERATURE = 18.0;
+    // 61 → RAIN: a real WMO code so the int column round-trips through WeatherCode.
+    private static final WeatherCode WEATHER_CODE = new WeatherCode(61);
     private static final Instant FETCHED_AT = Instant.parse("2026-07-20T12:00:00Z");
 
     @Test
     @DisplayName("toDataModel copies every field from the domain reading")
     void toDataModelCopiesEveryField() {
         WeatherReading reading = WeatherReadingFactory.rehydrate(
-                ID, BEACH_ID, SPEED, DIRECTION, AIR_TEMPERATURE, WATER_TEMPERATURE, FETCHED_AT);
+                ID, BEACH_ID, SPEED, DIRECTION, AIR_TEMPERATURE, WATER_TEMPERATURE, WEATHER_CODE, FETCHED_AT);
 
         WeatherReadingDataModel dataModel = mapper.toDataModel(reading);
 
@@ -46,6 +49,7 @@ class WeatherReadingMapperTest {
         assertEquals(DIRECTION.getDegrees(), dataModel.getWindDirection());
         assertEquals(AIR_TEMPERATURE, dataModel.getTemperatureCelsius());
         assertEquals(WATER_TEMPERATURE, dataModel.getWaterTemperatureCelsius());
+        assertEquals(WEATHER_CODE.getValue(), dataModel.getWeatherCode());
         assertEquals(FETCHED_AT, dataModel.getFetchedAt());
     }
 
@@ -53,7 +57,7 @@ class WeatherReadingMapperTest {
     @DisplayName("toDomain rebuilds the reading with matching value objects")
     void toDomainRebuildsReading() {
         WeatherReadingDataModel dataModel = new WeatherReadingDataModel(
-                ID.getValue(), BEACH_ID.getValue(), 32.5, 350.0, AIR_TEMPERATURE, WATER_TEMPERATURE, FETCHED_AT);
+                ID.getValue(), BEACH_ID.getValue(), 32.5, 350.0, AIR_TEMPERATURE, WATER_TEMPERATURE, 61, FETCHED_AT);
 
         WeatherReading reading = mapper.toDomain(dataModel);
 
@@ -63,6 +67,7 @@ class WeatherReadingMapperTest {
         assertEquals(DIRECTION, reading.getWindDirection());
         assertEquals(AIR_TEMPERATURE, reading.getTemperatureCelsius());
         assertEquals(WATER_TEMPERATURE, reading.getWaterTemperatureCelsius());
+        assertEquals(WEATHER_CODE, reading.getWeatherCode());
         assertEquals(FETCHED_AT, reading.getFetchedAt());
     }
 
@@ -70,7 +75,7 @@ class WeatherReadingMapperTest {
     @DisplayName("domain -> data model -> domain preserves the full state (sameAs)")
     void roundTripPreservesState() {
         WeatherReading original = WeatherReadingFactory.rehydrate(
-                ID, BEACH_ID, SPEED, DIRECTION, AIR_TEMPERATURE, WATER_TEMPERATURE, FETCHED_AT);
+                ID, BEACH_ID, SPEED, DIRECTION, AIR_TEMPERATURE, WATER_TEMPERATURE, WEATHER_CODE, FETCHED_AT);
 
         WeatherReading roundTripped = mapper.toDomain(mapper.toDataModel(original));
 
@@ -84,7 +89,7 @@ class WeatherReadingMapperTest {
         UUID id = UUID.randomUUID();
         UUID beachId = UUID.randomUUID();
         WeatherReadingDataModel original = new WeatherReadingDataModel(
-                id, beachId, 12.0, 0.0, 15.0, 14.0, FETCHED_AT);
+                id, beachId, 12.0, 0.0, 15.0, 14.0, 45, FETCHED_AT);
 
         WeatherReadingDataModel roundTripped = mapper.toDataModel(mapper.toDomain(original));
 
@@ -94,6 +99,7 @@ class WeatherReadingMapperTest {
         assertEquals(0.0, roundTripped.getWindDirection());
         assertEquals(15.0, roundTripped.getTemperatureCelsius());
         assertEquals(14.0, roundTripped.getWaterTemperatureCelsius());
+        assertEquals(45, roundTripped.getWeatherCode());
         assertEquals(FETCHED_AT, roundTripped.getFetchedAt());
     }
 }

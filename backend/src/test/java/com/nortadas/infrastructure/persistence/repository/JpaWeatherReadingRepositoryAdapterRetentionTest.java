@@ -47,7 +47,7 @@ class JpaWeatherReadingRepositoryAdapterRetentionTest {
 
     private WeatherReadingDataModel readingAt(Instant fetchedAt) {
         return new WeatherReadingDataModel(
-                UUID.randomUUID(), SEEDED_BEACH_ID, 12.0, 0.0, 18.0, 16.0, fetchedAt);
+                UUID.randomUUID(), SEEDED_BEACH_ID, 12.0, 0.0, 18.0, 16.0, 61, fetchedAt);
     }
 
     @Test

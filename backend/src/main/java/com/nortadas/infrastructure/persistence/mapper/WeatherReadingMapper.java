@@ -1,6 +1,7 @@
 package com.nortadas.infrastructure.persistence.mapper;
 
 import com.nortadas.domain.valueobject.BeachId;
+import com.nortadas.domain.valueobject.WeatherCode;
 import com.nortadas.domain.valueobject.WeatherReadingId;
 import com.nortadas.domain.valueobject.WindDirection;
 import com.nortadas.domain.valueobject.WindSpeed;
@@ -27,6 +28,7 @@ public class WeatherReadingMapper {
                 new WindDirection(dataModel.getWindDirection()),
                 dataModel.getTemperatureCelsius(),
                 dataModel.getWaterTemperatureCelsius(),
+                new WeatherCode(dataModel.getWeatherCode()),
                 dataModel.getFetchedAt());
     }
 
@@ -38,6 +40,7 @@ public class WeatherReadingMapper {
                 reading.getWindDirection().getDegrees(),
                 reading.getTemperatureCelsius(),
                 reading.getWaterTemperatureCelsius(),
+                reading.getWeatherCode().getValue(),
                 reading.getFetchedAt());
     }
 }

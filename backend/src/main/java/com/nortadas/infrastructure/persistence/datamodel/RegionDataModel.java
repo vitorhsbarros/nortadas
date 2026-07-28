@@ -4,7 +4,10 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 /**
  * JPA data model for the {@code region} table (docs/architecture.md §3, §8): a
@@ -20,6 +23,8 @@ import lombok.Getter;
 @Entity
 @Table(name = "region")
 @Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@AllArgsConstructor
 public class RegionDataModel {
 
     @Id
@@ -28,13 +33,4 @@ public class RegionDataModel {
 
     @Column(name = "name", nullable = false, length = 80)
     private String name;
-
-    /** Required by JPA; not for application use. */
-    protected RegionDataModel() {
-    }
-
-    public RegionDataModel(String id, String name) {
-        this.id = id;
-        this.name = name;
-    }
 }

@@ -1,6 +1,8 @@
 package com.nortadas.domain.weatherreading;
 
 import com.nortadas.domain.valueobject.BeachId;
+import com.nortadas.domain.valueobject.WeatherCode;
+import com.nortadas.domain.valueobject.WeatherCondition;
 import com.nortadas.domain.valueobject.WeatherReadingId;
 import com.nortadas.domain.valueobject.WindDirection;
 import com.nortadas.domain.valueobject.WindSpeed;
@@ -26,10 +28,12 @@ class WeatherReadingTest {
     private static final WindDirection DIRECTION = new WindDirection(350.0);
     private static final double TEMPERATURE = 21.5;
     private static final double WATER_TEMPERATURE = 18.5;
+    // 3 → CLOUDY: an unambiguous category to assert derivation against.
+    private static final WeatherCode WEATHER_CODE = new WeatherCode(3);
     private static final Instant FETCHED_AT = Instant.parse("2026-07-20T12:00:00Z");
 
     private static WeatherReading rehydrated() {
-        return new WeatherReading(ID, BEACH_ID, SPEED, DIRECTION, TEMPERATURE, WATER_TEMPERATURE, FETCHED_AT);
+        return new WeatherReading(ID, BEACH_ID, SPEED, DIRECTION, TEMPERATURE, WATER_TEMPERATURE, WEATHER_CODE, FETCHED_AT);
     }
 
     // --- creation --------------------------------------------------------
@@ -43,14 +47,21 @@ class WeatherReadingTest {
         assertEquals(DIRECTION, reading.getWindDirection());
         assertEquals(TEMPERATURE, reading.getTemperatureCelsius());
         assertEquals(WATER_TEMPERATURE, reading.getWaterTemperatureCelsius());
+        assertEquals(WEATHER_CODE, reading.getWeatherCode());
         assertEquals(FETCHED_AT, reading.getFetchedAt());
+    }
+
+    @Test
+    @DisplayName("derives the coarse weather condition from the raw code")
+    void derivesWeatherConditionFromCode() {
+        assertEquals(WeatherCondition.CLOUDY, rehydrated().getWeatherCondition());
     }
 
     @Test
     @DisplayName("the generating constructor assigns a fresh identity")
     void generatingConstructorAssignsIdentity() {
         WeatherReading reading =
-                new WeatherReading(BEACH_ID, SPEED, DIRECTION, TEMPERATURE, WATER_TEMPERATURE, FETCHED_AT);
+                new WeatherReading(BEACH_ID, SPEED, DIRECTION, TEMPERATURE, WATER_TEMPERATURE, WEATHER_CODE, FETCHED_AT);
         assertNotNull(reading.getId());
     }
 
@@ -58,10 +69,10 @@ class WeatherReadingTest {
     @DisplayName("accepts negative and extreme finite air temperatures")
     void acceptsExtremeFiniteTemperatures() {
         assertEquals(-15.0,
-                new WeatherReading(ID, BEACH_ID, SPEED, DIRECTION, -15.0, WATER_TEMPERATURE, FETCHED_AT)
+                new WeatherReading(ID, BEACH_ID, SPEED, DIRECTION, -15.0, WATER_TEMPERATURE, WEATHER_CODE, FETCHED_AT)
                         .getTemperatureCelsius());
         assertEquals(-Double.MAX_VALUE,
-                new WeatherReading(ID, BEACH_ID, SPEED, DIRECTION, -Double.MAX_VALUE, WATER_TEMPERATURE, FETCHED_AT)
+                new WeatherReading(ID, BEACH_ID, SPEED, DIRECTION, -Double.MAX_VALUE, WATER_TEMPERATURE, WEATHER_CODE, FETCHED_AT)
                         .getTemperatureCelsius());
     }
 
@@ -69,10 +80,10 @@ class WeatherReadingTest {
     @DisplayName("accepts negative and extreme finite water temperatures")
     void acceptsExtremeFiniteWaterTemperatures() {
         assertEquals(-2.0,
-                new WeatherReading(ID, BEACH_ID, SPEED, DIRECTION, TEMPERATURE, -2.0, FETCHED_AT)
+                new WeatherReading(ID, BEACH_ID, SPEED, DIRECTION, TEMPERATURE, -2.0, WEATHER_CODE, FETCHED_AT)
                         .getWaterTemperatureCelsius());
         assertEquals(-Double.MAX_VALUE,
-                new WeatherReading(ID, BEACH_ID, SPEED, DIRECTION, TEMPERATURE, -Double.MAX_VALUE, FETCHED_AT)
+                new WeatherReading(ID, BEACH_ID, SPEED, DIRECTION, TEMPERATURE, -Double.MAX_VALUE, WEATHER_CODE, FETCHED_AT)
                         .getWaterTemperatureCelsius());
     }
 
@@ -81,28 +92,28 @@ class WeatherReadingTest {
     @Test
     void rejectsNullId() {
         IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
-                () -> new WeatherReading(null, BEACH_ID, SPEED, DIRECTION, TEMPERATURE, WATER_TEMPERATURE, FETCHED_AT));
+                () -> new WeatherReading(null, BEACH_ID, SPEED, DIRECTION, TEMPERATURE, WATER_TEMPERATURE, WEATHER_CODE, FETCHED_AT));
         assertEquals("Weather reading id cannot be null!", ex.getMessage());
     }
 
     @Test
     void rejectsNullBeachId() {
         IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
-                () -> new WeatherReading(ID, null, SPEED, DIRECTION, TEMPERATURE, WATER_TEMPERATURE, FETCHED_AT));
+                () -> new WeatherReading(ID, null, SPEED, DIRECTION, TEMPERATURE, WATER_TEMPERATURE, WEATHER_CODE, FETCHED_AT));
         assertEquals("Weather reading beach id cannot be null!", ex.getMessage());
     }
 
     @Test
     void rejectsNullWindSpeed() {
         IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
-                () -> new WeatherReading(ID, BEACH_ID, null, DIRECTION, TEMPERATURE, WATER_TEMPERATURE, FETCHED_AT));
+                () -> new WeatherReading(ID, BEACH_ID, null, DIRECTION, TEMPERATURE, WATER_TEMPERATURE, WEATHER_CODE, FETCHED_AT));
         assertEquals("Weather reading wind speed cannot be null!", ex.getMessage());
     }
 
     @Test
     void rejectsNullWindDirection() {
         IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
-                () -> new WeatherReading(ID, BEACH_ID, SPEED, null, TEMPERATURE, WATER_TEMPERATURE, FETCHED_AT));
+                () -> new WeatherReading(ID, BEACH_ID, SPEED, null, TEMPERATURE, WATER_TEMPERATURE, WEATHER_CODE, FETCHED_AT));
         assertEquals("Weather reading wind direction cannot be null!", ex.getMessage());
     }
 
@@ -110,7 +121,7 @@ class WeatherReadingTest {
     @ValueSource(doubles = {Double.NaN, Double.POSITIVE_INFINITY, Double.NEGATIVE_INFINITY})
     void rejectsNonFiniteTemperature(double temperature) {
         IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
-                () -> new WeatherReading(ID, BEACH_ID, SPEED, DIRECTION, temperature, WATER_TEMPERATURE, FETCHED_AT));
+                () -> new WeatherReading(ID, BEACH_ID, SPEED, DIRECTION, temperature, WATER_TEMPERATURE, WEATHER_CODE, FETCHED_AT));
         assertEquals("Weather reading temperature must be a finite number!", ex.getMessage());
     }
 
@@ -118,14 +129,21 @@ class WeatherReadingTest {
     @ValueSource(doubles = {Double.NaN, Double.POSITIVE_INFINITY, Double.NEGATIVE_INFINITY})
     void rejectsNonFiniteWaterTemperature(double waterTemperature) {
         IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
-                () -> new WeatherReading(ID, BEACH_ID, SPEED, DIRECTION, TEMPERATURE, waterTemperature, FETCHED_AT));
+                () -> new WeatherReading(ID, BEACH_ID, SPEED, DIRECTION, TEMPERATURE, waterTemperature, WEATHER_CODE, FETCHED_AT));
         assertEquals("Weather reading water temperature must be a finite number!", ex.getMessage());
+    }
+
+    @Test
+    void rejectsNullWeatherCode() {
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+                () -> new WeatherReading(ID, BEACH_ID, SPEED, DIRECTION, TEMPERATURE, WATER_TEMPERATURE, null, FETCHED_AT));
+        assertEquals("Weather reading weather code cannot be null!", ex.getMessage());
     }
 
     @Test
     void rejectsNullFetchTime() {
         IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
-                () -> new WeatherReading(ID, BEACH_ID, SPEED, DIRECTION, TEMPERATURE, WATER_TEMPERATURE, null));
+                () -> new WeatherReading(ID, BEACH_ID, SPEED, DIRECTION, TEMPERATURE, WATER_TEMPERATURE, WEATHER_CODE, null));
         assertEquals("Weather reading fetch time cannot be null!", ex.getMessage());
     }
 
@@ -141,7 +159,7 @@ class WeatherReadingTest {
     void readingsWithSameIdAreEqualRegardlessOfState() {
         WeatherReading a = rehydrated();
         WeatherReading b = new WeatherReading(
-                ID, BeachId.newId(), new WindSpeed(1.0), new WindDirection(1.0), 0.0, 0.0, FETCHED_AT.plusSeconds(1));
+                ID, BeachId.newId(), new WindSpeed(1.0), new WindDirection(1.0), 0.0, 0.0, new WeatherCode(0), FETCHED_AT.plusSeconds(1));
         assertEquals(a, b);
         assertEquals(a.hashCode(), b.hashCode());
     }
@@ -149,7 +167,7 @@ class WeatherReadingTest {
     @Test
     void readingsWithDifferentIdsAreNotEqual() {
         assertNotEquals(rehydrated(), new WeatherReading(
-                WeatherReadingId.newId(), BEACH_ID, SPEED, DIRECTION, TEMPERATURE, WATER_TEMPERATURE, FETCHED_AT));
+                WeatherReadingId.newId(), BEACH_ID, SPEED, DIRECTION, TEMPERATURE, WATER_TEMPERATURE, WEATHER_CODE, FETCHED_AT));
     }
 
     @Test
@@ -174,19 +192,21 @@ class WeatherReadingTest {
     @Test
     void sameAsIsFalseWhenAnyAttributeDiffers() {
         assertFalse(rehydrated().sameAs(new WeatherReading(
-                WeatherReadingId.newId(), BEACH_ID, SPEED, DIRECTION, TEMPERATURE, WATER_TEMPERATURE, FETCHED_AT)));
+                WeatherReadingId.newId(), BEACH_ID, SPEED, DIRECTION, TEMPERATURE, WATER_TEMPERATURE, WEATHER_CODE, FETCHED_AT)));
         assertFalse(rehydrated().sameAs(new WeatherReading(
-                ID, BeachId.newId(), SPEED, DIRECTION, TEMPERATURE, WATER_TEMPERATURE, FETCHED_AT)));
+                ID, BeachId.newId(), SPEED, DIRECTION, TEMPERATURE, WATER_TEMPERATURE, WEATHER_CODE, FETCHED_AT)));
         assertFalse(rehydrated().sameAs(new WeatherReading(
-                ID, BEACH_ID, new WindSpeed(31.0), DIRECTION, TEMPERATURE, WATER_TEMPERATURE, FETCHED_AT)));
+                ID, BEACH_ID, new WindSpeed(31.0), DIRECTION, TEMPERATURE, WATER_TEMPERATURE, WEATHER_CODE, FETCHED_AT)));
         assertFalse(rehydrated().sameAs(new WeatherReading(
-                ID, BEACH_ID, SPEED, new WindDirection(10.0), TEMPERATURE, WATER_TEMPERATURE, FETCHED_AT)));
+                ID, BEACH_ID, SPEED, new WindDirection(10.0), TEMPERATURE, WATER_TEMPERATURE, WEATHER_CODE, FETCHED_AT)));
         assertFalse(rehydrated().sameAs(new WeatherReading(
-                ID, BEACH_ID, SPEED, DIRECTION, TEMPERATURE + 0.1, WATER_TEMPERATURE, FETCHED_AT)));
+                ID, BEACH_ID, SPEED, DIRECTION, TEMPERATURE + 0.1, WATER_TEMPERATURE, WEATHER_CODE, FETCHED_AT)));
         assertFalse(rehydrated().sameAs(new WeatherReading(
-                ID, BEACH_ID, SPEED, DIRECTION, TEMPERATURE, WATER_TEMPERATURE + 0.1, FETCHED_AT)));
+                ID, BEACH_ID, SPEED, DIRECTION, TEMPERATURE, WATER_TEMPERATURE + 0.1, WEATHER_CODE, FETCHED_AT)));
         assertFalse(rehydrated().sameAs(new WeatherReading(
-                ID, BEACH_ID, SPEED, DIRECTION, TEMPERATURE, WATER_TEMPERATURE, FETCHED_AT.plusSeconds(1))));
+                ID, BEACH_ID, SPEED, DIRECTION, TEMPERATURE, WATER_TEMPERATURE, new WeatherCode(61), FETCHED_AT)));
+        assertFalse(rehydrated().sameAs(new WeatherReading(
+                ID, BEACH_ID, SPEED, DIRECTION, TEMPERATURE, WATER_TEMPERATURE, WEATHER_CODE, FETCHED_AT.plusSeconds(1))));
     }
 
     // --- toString --------------------------------------------------------
@@ -200,6 +220,7 @@ class WeatherReadingTest {
         assertTrue(rendered.contains("350.0°"));
         assertTrue(rendered.contains("21.5"));
         assertTrue(rendered.contains("18.5"));
+        assertTrue(rendered.contains(WEATHER_CODE.toString()));
         assertTrue(rendered.contains("2026-07-20T12:00:00Z"));
     }
 }

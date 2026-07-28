@@ -8,7 +8,10 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import java.util.UUID;
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 /**
  * JPA data model for the {@code beach} table (docs/architecture.md §3, §8),
@@ -22,6 +25,8 @@ import lombok.Getter;
 @Entity
 @Table(name = "beach")
 @Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@AllArgsConstructor
 public class BeachDataModel {
 
     @Id
@@ -40,16 +45,4 @@ public class BeachDataModel {
     @ManyToOne(optional = false, fetch = FetchType.EAGER)
     @JoinColumn(name = "municipality_id", nullable = false)
     private MunicipalityDataModel municipality;
-
-    /** Required by JPA; not for application use. */
-    protected BeachDataModel() {
-    }
-
-    public BeachDataModel(UUID id, String name, double latitude, double longitude, MunicipalityDataModel municipality) {
-        this.id = id;
-        this.name = name;
-        this.latitude = latitude;
-        this.longitude = longitude;
-        this.municipality = municipality;
-    }
 }

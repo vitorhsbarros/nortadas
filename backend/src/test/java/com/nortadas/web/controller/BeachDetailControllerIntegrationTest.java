@@ -10,6 +10,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.nortadas.application.port.WeatherReadingRepositoryPort;
 import com.nortadas.domain.valueobject.BeachId;
+import com.nortadas.domain.valueobject.WeatherCode;
 import com.nortadas.domain.valueobject.WindDirection;
 import com.nortadas.domain.valueobject.WindSpeed;
 import com.nortadas.domain.weatherreading.WeatherReadingFactory;
@@ -65,6 +66,7 @@ class BeachDetailControllerIntegrationTest {
                 .andExpect(jsonPath("$.name", is("Praia Central de Espinho")))
                 .andExpect(jsonPath("$.region").exists())
                 .andExpect(jsonPath("$.nortadaStatus", is("NONE")))
+                .andExpect(jsonPath("$.weatherCondition").doesNotExist())
                 .andExpect(jsonPath("$.reading").doesNotExist())
                 .andExpect(jsonPath("$._links.self.href", endsWith("/api/beaches/" + ESPINHO_ID)))
                 .andExpect(jsonPath("$._links.collection.href", endsWith("/api/beaches")));
@@ -75,12 +77,14 @@ class BeachDetailControllerIntegrationTest {
     void returnsGradedStatusAndReadingBlockWhenReadingPresent() throws Exception {
         BeachId espinho = new BeachId(UUID.fromString(ESPINHO_ID));
         // 340 deg is in-sector (N-NNW gate); 30 km/h grades to MODERATE.
+        // 61 is the WMO code for rain, so the derived condition is RAIN.
         weatherReadingRepository.save(WeatherReadingFactory.create(
                 espinho,
                 new WindSpeed(30.0),
                 new WindDirection(340.0),
                 18.0,
                 16.0,
+                new WeatherCode(61),
                 Instant.parse("2026-07-20T09:00:00Z")));
 
         mockMvc.perform(get("/api/beaches/{id}", ESPINHO_ID))
@@ -88,9 +92,11 @@ class BeachDetailControllerIntegrationTest {
                 .andExpect(content().contentTypeCompatibleWith(MediaTypes.HAL_JSON))
                 .andExpect(jsonPath("$.id", is(ESPINHO_ID)))
                 .andExpect(jsonPath("$.nortadaStatus", is("MODERATE")))
+                .andExpect(jsonPath("$.weatherCondition", is("RAIN")))
                 .andExpect(jsonPath("$.reading.windSpeed", is(30.0)))
                 .andExpect(jsonPath("$.reading.windDirection", is(340.0)))
                 .andExpect(jsonPath("$.reading.temperature", is(18.0)))
+                .andExpect(jsonPath("$.reading.weatherCode", is(61)))
                 .andExpect(jsonPath("$.reading.fetchedAt", is("2026-07-20T09:00:00Z")));
     }
 

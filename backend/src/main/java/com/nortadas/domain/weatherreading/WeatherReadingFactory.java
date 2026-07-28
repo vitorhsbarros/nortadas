@@ -1,6 +1,7 @@
 package com.nortadas.domain.weatherreading;
 
 import com.nortadas.domain.valueobject.BeachId;
+import com.nortadas.domain.valueobject.WeatherCode;
 import com.nortadas.domain.valueobject.WeatherReadingId;
 import com.nortadas.domain.valueobject.WindDirection;
 import com.nortadas.domain.valueobject.WindSpeed;
@@ -23,9 +24,11 @@ public final class WeatherReadingFactory {
                                         WindDirection windDirection,
                                         double temperatureCelsius,
                                         double waterTemperatureCelsius,
+                                        WeatherCode weatherCode,
                                         Instant fetchedAt) {
         return new WeatherReading(
-                beachId, windSpeed, windDirection, temperatureCelsius, waterTemperatureCelsius, fetchedAt);
+                beachId, windSpeed, windDirection, temperatureCelsius, waterTemperatureCelsius,
+                weatherCode, fetchedAt);
     }
 
     /** Rehydrates a reading with a known identity (e.g. loaded from persistence). */
@@ -35,8 +38,10 @@ public final class WeatherReadingFactory {
                                            WindDirection windDirection,
                                            double temperatureCelsius,
                                            double waterTemperatureCelsius,
+                                           WeatherCode weatherCode,
                                            Instant fetchedAt) {
         return new WeatherReading(
-                id, beachId, windSpeed, windDirection, temperatureCelsius, waterTemperatureCelsius, fetchedAt);
+                id, beachId, windSpeed, windDirection, temperatureCelsius, waterTemperatureCelsius,
+                weatherCode, fetchedAt);
     }
 }

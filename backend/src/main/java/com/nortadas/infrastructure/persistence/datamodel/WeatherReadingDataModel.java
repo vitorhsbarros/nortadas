@@ -6,7 +6,10 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import java.time.Instant;
 import java.util.UUID;
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 /**
  * JPA data model for the {@code weather_reading} table (docs/architecture.md §3,
@@ -22,6 +25,8 @@ import lombok.Getter;
 @Entity
 @Table(name = "weather_reading")
 @Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@AllArgsConstructor
 public class WeatherReadingDataModel {
 
     @Id
@@ -43,26 +48,9 @@ public class WeatherReadingDataModel {
     @Column(name = "water_temperature_celsius", nullable = false)
     private double waterTemperatureCelsius;
 
+    @Column(name = "weather_code", nullable = false)
+    private int weatherCode;
+
     @Column(name = "fetched_at", nullable = false)
     private Instant fetchedAt;
-
-    /** Required by JPA; not for application use. */
-    protected WeatherReadingDataModel() {
-    }
-
-    public WeatherReadingDataModel(UUID id,
-                                   UUID beachId,
-                                   double windSpeed,
-                                   double windDirection,
-                                   double temperatureCelsius,
-                                   double waterTemperatureCelsius,
-                                   Instant fetchedAt) {
-        this.id = id;
-        this.beachId = beachId;
-        this.windSpeed = windSpeed;
-        this.windDirection = windDirection;
-        this.temperatureCelsius = temperatureCelsius;
-        this.waterTemperatureCelsius = waterTemperatureCelsius;
-        this.fetchedAt = fetchedAt;
-    }
 }

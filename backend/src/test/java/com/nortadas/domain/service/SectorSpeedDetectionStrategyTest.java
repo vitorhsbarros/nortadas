@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.nortadas.domain.valueobject.BeachId;
 import com.nortadas.domain.valueobject.NortadaStatus;
+import com.nortadas.domain.valueobject.WeatherCode;
 import com.nortadas.domain.valueobject.WindDirection;
 import com.nortadas.domain.valueobject.WindSpeed;
 import com.nortadas.domain.weatherreading.WeatherReading;
@@ -29,6 +30,7 @@ class SectorSpeedDetectionStrategyTest {
                 new WindDirection(degrees),
                 21.5,
                 18.5,
+                new WeatherCode(3),
                 FETCHED_AT);
     }
 
