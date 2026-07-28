@@ -1,0 +1,98 @@
+@startuml
+title Nortadas - Scheduler Flow: fetch weather -> persist reading
+
+'Formatting
+skinparam monochrome false
+skinparam defaultFontName Futura
+skinparam backgroundColor #adb5bd
+skinparam ArrowFontColor #141414
+skinparam ArrowColor #141414
+skinparam ArrowFontSize 13
+skinparam ArrowThickness 2
+skinparam sequence {
+    ParticipantBackgroundColor #4c6ef5
+    ParticipantFontColor #ffffff
+    ParticipantBorderColor #364fc7
+    ActorBackgroundColor #4c6ef5
+    ActorFontColor #ffffff
+    LifeLineBorderColor #364fc7
+    LifeLineBackgroundColor #dbe4ff
+}
+skinparam note {
+    BackgroundColor #4c6ef5
+    FontColor #ffffff
+    BorderColor #364fc7
+}
+
+' Runs hourly (US009). Detection is NOT part of this flow - see the note below.
+
+participant "WeatherDataScheduler\n<<scheduler>>" as Scheduler
+participant "FetchWeatherUseCase\n<<application>>" as UseCase
+participant "BeachRepositoryPort\n<<port>>" as BeachRepo
+participant "WeatherClientPort\n<<port>>" as WClient
+participant "OpenMeteoClientAdapter\n<<infrastructure>>" as OpenMeteo
+participant "WeatherReadingRepositoryPort\n<<port>>" as ReadingRepo
+
+note over Scheduler
+  @Scheduled(cron = nortadas.weather.scheduler.cron),
+  default hh:23:37 - deliberately NOT the top of the
+  hour: a real hh:00:00 run drew HTTP 503 "service is
+  overloaded" from Open-Meteo's free tier (issue #50).
+end note
+
+Scheduler -> UseCase : fetchWeatherForAllBeaches()\n-> fetchAllBeaches()
+activate UseCase
+
+UseCase -> BeachRepo : findAll()
+activate BeachRepo
+BeachRepo --> UseCase : List<Beach>
+deactivate BeachRepo
+
+loop for each Beach
+    UseCase -> WClient : fetchCurrent(beachId, latitude, longitude)
+    activate WClient
+    WClient -> OpenMeteo : GET /forecast?current=wind_speed_10m,\nwind_direction_10m,temperature_2m,weather_code
+    activate OpenMeteo
+    OpenMeteo --> WClient : wind + air temperature + WMO weather_code
+    deactivate OpenMeteo
+
+    WClient -> OpenMeteo : GET /marine?current=sea_surface_temperature
+    activate OpenMeteo
+    OpenMeteo --> WClient : sea-surface temperature
+    deactivate OpenMeteo
+
+    note right of OpenMeteo
+      Two calls per beach: Open-Meteo splits the data across
+      the forecast and marine APIs (ADR-004). The adapter
+      combines both into one domain WeatherReading, so the
+      provider's JSON shape never crosses the port.
+      Connect/read timeouts are configured so a slow beach
+      cannot hang the sweep (issue #50).
+    end note
+
+    WClient --> UseCase : WeatherReading
+    deactivate WClient
+
+    UseCase -> ReadingRepo : save(reading)
+    activate ReadingRepo
+    ReadingRepo --> UseCase : persisted WeatherReading
+    deactivate ReadingRepo
+
+    alt fetch or persist fails
+        note over UseCase : log error, continue to next beach\n(one failed beach must not crash the sweep - US009)
+    end
+end
+
+UseCase --> Scheduler : done
+deactivate UseCase
+
+note over UseCase, ReadingRepo
+  Nortada detection deliberately does NOT run here.
+  A reading stores only raw observations; NortadaStatus
+  (and WeatherCondition) are derived on demand at READ
+  time by the query use cases and never persisted, so
+  the rules can change without a data migration
+  (see beach-request-flows.puml, ADR-005).
+end note
+
+@enduml

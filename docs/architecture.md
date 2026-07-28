@@ -19,34 +19,58 @@ Dependencies only point inward. Outer layers depend on inner layers through inte
 
 ## 2. Package structure
 
+The `domain` layer is split **one package per DDD aggregate root** (each holding the root plus its
+`*Factory`), rather than by technical role — see `CLAUDE.md` for the per-package rationale.
+
 ```
 com.nortadas
 ├── domain
-│   ├── Beach, Municipality, Region, WeatherReading, NortadaStatus, User, FavouriteBeaches
-│   └── valueobject/        (BeachId, MunicipalityId, Name, Latitude, Longitude, Email, ...)
+│   ├── beach/               (Beach + BeachFactory)
+│   ├── municipality/        (Municipality + MunicipalityFactory)
+│   ├── region/              (Region + RegionFactory)
+│   ├── weatherreading/      (WeatherReading + WeatherReadingFactory)
+│   ├── favourite/           (FavouriteBeaches)
+│   ├── service/             (domain services: NortadaDetectionService,
+│   │                         NortadaDetectionStrategy, SectorSpeedDetectionStrategy)
+│   └── valueobject/         (BeachId, MunicipalityId, RegionId, WeatherReadingId, Name,
+│                             Latitude, Longitude, WindSpeed, WindDirection, WeatherCode,
+│                             WeatherCondition, NortadaStatus)
 ├── application
-│   ├── usecase/            (GetBeachListUseCase, GetBeachDetailUseCase, DetectNortadaUseCase)
-│   └── port/                (BeachRepositoryPort, WeatherClientPort — interfaces only)
+│   ├── usecase/             (GetBeachListUseCase, GetBeachDetailUseCase, FetchWeatherUseCase,
+│   │                         PurgeOldWeatherReadingsUseCase; plus the layer's own result types
+│   │                         BeachStatusView / PageResult and BeachNotFoundException)
+│   └── port/                (BeachRepositoryPort, WeatherClientPort,
+│                             WeatherReadingRepositoryPort — interfaces only)
 ├── infrastructure
 │   ├── persistence
-│   │   ├── datamodel/       (JPA @Entity data models: BeachDataModel, RegionDataModel, WeatherReadingDataModel)
+│   │   ├── datamodel/       (JPA @Entity data models: BeachDataModel, RegionDataModel,
+│   │   │                     MunicipalityDataModel, WeatherReadingDataModel)
 │   │   ├── mapper/          (domain <-> data model mappers)
 │   │   └── repository/      (Spring Data JPA repos + adapter implementing *Port)
 │   └── weather
 │       └── OpenMeteoClientAdapter   (implements WeatherClientPort)
 ├── web
-│   ├── controller/          (BeachController, RegionController)
-│   ├── dto/                 (BeachResponse, BeachListResponse — HAL+JSON)
-│   └── mapper/              (domain -> DTO)
+│   ├── controller/          (BeachController)
+│   ├── dto/                 (BeachResponse, WeatherReadingResponse — HAL+JSON)
+│   ├── mapper/              (BeachDtoMapper: application view -> DTO)
+│   └── error/               (ApiExceptionHandler + web exceptions -> RFC-7807 ProblemDetail)
 ├── scheduler
-│   └── WeatherDataScheduler  (driving adapter, invokes application use cases)
+│   ├── WeatherDataScheduler       (hourly fetch trigger)
+│   └── WeatherRetentionScheduler  (daily retention purge trigger)
 └── config
-    └── AppConfig             (wires adapters to ports)
+    └── ClockConfig, DetectionConfig, OpenMeteoHttpClientConfig,
+        SchedulingConfig, SecurityConfig   (wiring only — one concern per class,
+        e.g. DetectionConfig picks the NortadaDetectionStrategy implementation)
 ```
 
 This refines the flat layout in `docs/OOA/package-structure.md` — `controller`/`dto` become
 `web`, `repository` splits into `infrastructure/persistence` (JPA) + `application/port`
 (interface), and `application`/`infrastructure` are new to make the dependency direction explicit.
+
+**Wiring lives in `config`, one class per concern** — there is no single `AppConfig`. Because the
+domain is framework-free (§3.1), anything domain-side that must become a Spring bean is constructed
+there: `DetectionConfig` is what chooses `SectorSpeedDetectionStrategy` as the default detection rule,
+so swapping the rule never touches a caller (OCP).
 
 ## 3. Three models, never mixed
 
@@ -83,22 +107,50 @@ dependency the domain would be coupled to, so it's excluded here on the same pri
 and encouraged where it cuts boilerplate. Purity is a property we buy for the business rules
 specifically, not a project-wide style rule.
 
+Concretely, outside `domain/` **let Lombok generate the constructors** rather than hand-writing them:
+
+- `web/dto` DTOs — `@Getter` + `@AllArgsConstructor`.
+- `infrastructure/persistence/datamodel` data models — `@Getter` + `@AllArgsConstructor` +
+  `@NoArgsConstructor(access = AccessLevel.PROTECTED)`, the no-arg one being what Hibernate requires;
+  `protected` keeps it out of application use, as the previous hand-written version did.
+- Hand-write a constructor there only when Lombok *can't* express it — a **subset-of-fields overload**,
+  such as `BeachResponse`'s reading-less constructor, which delegates to the generated one.
+
+Because a Lombok constructor is positional in **field-declaration order**, reordering fields silently
+reorders the constructor's parameters; keep field order stable when editing these classes.
+
 Mapping between them is an explicit, testable step (`mapper` classes) — never shared inheritance,
 never a "smart" object doing double duty.
 
 ## 4. Example flow — beach list request
 
 ```
-BeachController
-  → web/dto request
+BeachController  (@RequestParam page/size — no request DTO; GET carries no body)
   → application/usecase.GetBeachListUseCase
       → application/port.BeachRepositoryPort (interface)
           → infrastructure/persistence adapter → Spring Data JPA → BeachDataModel
           → persistence mapper → domain.Beach
-      → domain.NortadaDetectionService (per beach)
-  → web/mapper → web/dto.BeachResponse (HAL+JSON)
+      → application/port.WeatherReadingRepositoryPort (latest reading per beach)
+      → domain.service.NortadaDetectionService (per beach with a reading)
+    ← PageResult<BeachStatusView>   (framework-free; no Spring Data Page/Pageable)
+  → web/mapper.BeachDtoMapper → PagedModel<BeachResponse> (HAL+JSON)
 → client
 ```
+
+### 4.1 Web layer conventions
+
+- **Requests**: `GET` endpoints bind inputs directly to `@RequestParam`/`@PathVariable`; there are no
+  request DTOs yet because no endpoint takes a body. Introduce them (with validation annotations) when
+  write endpoints arrive.
+- **Links**: build every HAL link from a controller method reference —
+  `linkTo(methodOn(BeachController.class).detail(id))` — never by concatenating a path string. This keeps
+  emitted URIs tied to the real `@GetMapping`, so a route change cannot leave a stale link behind.
+- **Errors**: exceptions become RFC-7807 `ProblemDetail`s in `web/error/ApiExceptionHandler`
+  (`@RestControllerAdvice`), each with a stable `type` URI. Use cases throw meaningful exceptions
+  (`BeachNotFoundException`); the controller does no status-code branching.
+- **Pagination**: the application layer returns its own `PageResult<T>`; Spring Data's `Page`/`Pageable`
+  must not cross into it (§1). The web layer converts to `PagedModel` with `first`/`prev`/`next`/`last`
+  links so clients navigate by link rather than constructing query strings.
 
 ## 5. SOLID
 
@@ -159,7 +211,16 @@ BeachController
 
 ## 9. Testing implications
 
-- **Domain + application**: plain JUnit 5 unit tests, no Spring context.
-- **Infrastructure adapters**: integration tests (`@DataJpaTest` for persistence, a mock HTTP
-  server for the Open-Meteo adapter).
-- **Controllers**: `MockMvc`/`WebTestClient` tests asserting DTO shape and HATEOAS `_links`.
+- **Domain + application**: plain JUnit 5 unit tests, no Spring context (ports and the detection
+  service are mocked with Mockito).
+- **Infrastructure adapters**: integration tests — `MockRestServiceServer` for the Open-Meteo adapter,
+  a Spring context against H2 for persistence.
+- **Controllers**: `@SpringBootTest` + `@AutoConfigureMockMvc` + `@ActiveProfiles("test")`, asserting
+  DTO shape, HATEOAS `_links` and problem-detail bodies. These run the *full* context against H2 in
+  PostgreSQL mode with the real Flyway migrations applied, so the seeded catalogue is the fixture; add
+  `@Transactional` to the test class when a method inserts rows, so they roll back and don't leak into
+  sibling methods sharing the cached context.
+- **Coverage**: the JaCoCo gate (≥95% line *and* branch) only enforces `com.nortadas.domain*`, and its
+  `includes` list is explicit — a new domain package must be added there or it is silently ungated.
+  `application`/`web`/`infrastructure` are deliberately outside the gate: cover them by behaviour, not
+  by chasing a percentage.

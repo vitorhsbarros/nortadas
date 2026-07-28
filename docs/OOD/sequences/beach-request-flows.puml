@@ -32,37 +32,59 @@ participant "BeachRepositoryPort\n<<port>>" as BeachRepo
 participant "WeatherReadingRepositoryPort\n<<port>>" as ReadingRepo
 participant "NortadaDetectionService\n<<domain>>" as Detection
 participant "BeachDtoMapper\n<<web>>" as Mapper
+participant "ApiExceptionHandler\n<<web>>" as Advice
 
 == List: GET /api/beaches?page=0&size=20 ==
 
 Client -> Controller : GET /api/beaches?page=0&size=20
 activate Controller
-Controller -> ListUC : getBeaches(PageRequest(0,20))
-activate ListUC
 
-ListUC -> BeachRepo : findAll(page)
-activate BeachRepo
-BeachRepo --> ListUC : Page<Beach>
-deactivate BeachRepo
+alt page < 0 or size outside 1..100
+    Controller ->> Advice : throws InvalidPaginationException
+    activate Advice
+    Advice --> Client : 400 application/problem+json\n(RFC-7807 ProblemDetail)
+    deactivate Advice
+else valid pagination
+    Controller -> ListUC : getBeaches(page, size)
+    activate ListUC
 
-loop for each Beach in page
-    ListUC -> ReadingRepo : latestForBeach(beachId)
-    activate ReadingRepo
-    ReadingRepo --> ListUC : Optional<WeatherReading>
-    deactivate ReadingRepo
-    ListUC -> Detection : detect(latestReading)
-    activate Detection
-    Detection --> ListUC : NortadaStatus
-    deactivate Detection
+    ListUC -> BeachRepo : findAll()
+    activate BeachRepo
+    BeachRepo --> ListUC : List<Beach>
+    deactivate BeachRepo
+
+    note right of ListUC
+      The port is deliberately unpaged: it returns the whole
+      (small, fixed) catalogue, and the use case sorts by name
+      and slices in memory, so no Spring Data Page/Pageable
+      leaks into the application layer (architecture.md s1).
+      Only the beaches on the requested page are graded below.
+    end note
+
+    loop for each Beach on the requested page
+        ListUC -> ReadingRepo : findLatestByBeachId(beachId)
+        activate ReadingRepo
+        ReadingRepo --> ListUC : Optional<WeatherReading>
+        deactivate ReadingRepo
+
+        alt reading present
+            ListUC -> Detection : detect(reading)
+            activate Detection
+            Detection --> ListUC : NortadaStatus
+            deactivate Detection
+        else no reading yet
+            note over ListUC : status = NONE;\ndetection is never called
+        end
+    end
+
+    ListUC --> Controller : PageResult<BeachStatusView>
+    deactivate ListUC
+    Controller -> Mapper : toListResponse(pageResult)
+    activate Mapper
+    Mapper --> Controller : PagedModel<BeachResponse>\n(HAL+JSON: _embedded.beaches + page +\n_links self/first/prev/next/last)
+    deactivate Mapper
+    Controller --> Client : 200 OK application/hal+json
 end
-
-ListUC --> Controller : Page<BeachStatusView>
-deactivate ListUC
-Controller -> Mapper : toListResponse(page)
-activate Mapper
-Mapper --> Controller : BeachListResponse (HAL+JSON,\n_embedded + _links self/first/prev/next/last)
-deactivate Mapper
-Controller --> Client : 200 OK application/hal+json
 deactivate Controller
 
 note over Controller, Client : 500 Internal Server Error on unexpected failure (US011)
@@ -79,20 +101,40 @@ BeachRepo --> DetailUC : Optional<Beach>
 deactivate BeachRepo
 
 alt beach not found
-    DetailUC --> Controller : throws BeachNotFoundException
-    Controller --> Client : 404 Not Found
+    DetailUC ->> Advice : throws BeachNotFoundException
+    activate Advice
+    note right of Advice
+      The exception propagates past the controller to the
+      @RestControllerAdvice, which renders it as RFC-7807.
+      The controller does no status-code branching.
+    end note
+    Advice --> Client : 404 application/problem+json
+    deactivate Advice
 else beach found
-    DetailUC -> ReadingRepo : latestForBeach(id)
+    DetailUC -> ReadingRepo : findLatestByBeachId(id)
     activate ReadingRepo
     ReadingRepo --> DetailUC : Optional<WeatherReading>
     deactivate ReadingRepo
-    DetailUC -> Detection : detect(latestReading)
-    activate Detection
-    Detection --> DetailUC : NortadaStatus
-    deactivate Detection
+
+    alt reading present
+        DetailUC -> Detection : detect(reading)
+        activate Detection
+        Detection --> DetailUC : NortadaStatus
+        deactivate Detection
+    else no reading yet
+        note over DetailUC : status = NONE
+    end
+
     DetailUC --> Controller : BeachStatusView
-    Controller -> Mapper : toResponse(view)
+    Controller -> Mapper : toDetail(view)
     activate Mapper
+    note right of Mapper
+      Adds the derived weatherCondition (mapped from the
+      reading's raw WeatherCode) at top level, plus the
+      reading block (windSpeed, windDirection, temperature,
+      weatherCode, fetchedAt). Both are omitted from the
+      JSON when the beach has no stored reading.
+    end note
     Mapper --> Controller : BeachResponse (HAL+JSON,\n_links self + collection)
     deactivate Mapper
     Controller --> Client : 200 OK application/hal+json
