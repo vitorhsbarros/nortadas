@@ -2,6 +2,7 @@ package com.nortadas.web.dto;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import java.util.UUID;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
 import org.springframework.hateoas.RepresentationModel;
 import org.springframework.hateoas.server.core.Relation;
@@ -30,6 +31,7 @@ import org.springframework.hateoas.server.core.Relation;
  * the JSON entirely when absent, so list items serialize without it.
  */
 @Getter
+@AllArgsConstructor
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @Relation(collectionRelation = "beaches")
 public class BeachResponse extends RepresentationModel<BeachResponse> {
@@ -45,24 +47,11 @@ public class BeachResponse extends RepresentationModel<BeachResponse> {
      * Constructs a beach without a {@code reading} block — used by the list
      * endpoint, whose items carry the derived {@code weatherCondition} summary but
      * never the raw reading. Pass {@code null} for {@code weatherCondition} when
-     * the beach has no stored reading.
+     * the beach has no stored reading. Delegates to the Lombok-generated
+     * all-args constructor; kept hand-written since Lombok does not generate
+     * overloads for a subset of fields.
      */
     public BeachResponse(UUID id, String name, String region, String nortadaStatus, String weatherCondition) {
         this(id, name, region, nortadaStatus, weatherCondition, null);
-    }
-
-    /**
-     * Constructs a beach with an optional {@code reading} block — used by the
-     * detail endpoint. Pass {@code null} for {@code weatherCondition} and/or
-     * {@code reading} when the beach has no stored reading.
-     */
-    public BeachResponse(UUID id, String name, String region, String nortadaStatus,
-                         String weatherCondition, WeatherReadingResponse reading) {
-        this.id = id;
-        this.name = name;
-        this.region = region;
-        this.nortadaStatus = nortadaStatus;
-        this.weatherCondition = weatherCondition;
-        this.reading = reading;
     }
 }

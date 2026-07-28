@@ -1,5 +1,6 @@
 package com.nortadas.web.dto;
 
+import lombok.AllArgsConstructor;
 import lombok.Getter;
 
 /**
@@ -13,6 +14,7 @@ import lombok.Getter;
  * ({@code GET /api/beaches}, US011) — only the detail view carries a reading.
  */
 @Getter
+@AllArgsConstructor
 public class WeatherReadingResponse {
 
     /** Wind speed in kilometres per hour. */
@@ -29,13 +31,4 @@ public class WeatherReadingResponse {
 
     /** When the reading was fetched, as an ISO-8601 instant string. */
     private final String fetchedAt;
-
-    public WeatherReadingResponse(double windSpeed, double windDirection, double temperature,
-                                  int weatherCode, String fetchedAt) {
-        this.windSpeed = windSpeed;
-        this.windDirection = windDirection;
-        this.temperature = temperature;
-        this.weatherCode = weatherCode;
-        this.fetchedAt = fetchedAt;
-    }
 }
