@@ -61,11 +61,23 @@ outside `domain.beach`; go through `BeachFactory.create(...)`/`.rehydrate(...)` 
 
 ## CI (`.github/workflows/ci-pipeline.yml`)
 
-Runs on pull requests with four jobs; only secret scanning is implemented so far, the rest are placeholders:
+Runs on pull requests with four jobs; three are implemented and blocking, `sca` is still a placeholder:
 - `secret-scan` — Gitleaks, configured via `.gitleaks.toml` (allowlists test/spec files and common placeholder
   patterns like `EXAMPLE_*`, `YOUR_*_HERE`)
-- `sast-semgrep` — placeholder ("coming in Phase 1")
-- `build-and-test-with-coverage` — placeholder ("coming in Phase 1")
+- `sast-semgrep` — Semgrep OSS CLI (no `SEMGREP_APP_TOKEN`), blocking on `ERROR`-severity findings only,
+  with SARIF uploaded to code scanning for inline PR annotations. Two scans: the backend against
+  `p/java` + `p/security-audit` + `p/owasp-top-ten`, and the mobile app against `p/typescript` +
+  `p/react` + `p/security-audit`. The mobile scan is gated on `mobile/package.json` existing, so it
+  no-ops until US014 lands and then enforces itself with no workflow edit. Each scan uploads under its
+  own SARIF `category`; without that the second upload would replace the first in code scanning.
+  Scans use `continue-on-error` plus a trailing enforce step **on purpose** — `--error` exits non-zero
+  on findings, which would otherwise skip the SARIF upload on exactly the runs where the annotations
+  matter. Don't "simplify" that away.
+- `build-and-test-with-coverage` — validates the Gradle wrapper checksum, then runs `./gradlew build` on
+  JDK 21. That single command *is* the coverage gate: `build` → `check` → `jacocoTestCoverageVerification`
+  (≥95% line and branch on `com.nortadas.domain*`), so no separate coverage step is needed. Needs no
+  Docker/PostgreSQL — the `test` profile runs against H2. The JaCoCo HTML report uploads as an artifact
+  even on failure, which is when it's most useful.
 - `sca` — placeholder ("coming in Phase 2")
 
 All files require review from `@vitorhsbarros` per `.github/CODEOWNERS`.
