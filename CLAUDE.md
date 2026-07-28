@@ -58,9 +58,14 @@ with a detached `git worktree` at the tip commit rather than trusting the workin
   - `domain.region` — `Region` (aggregate root) + `RegionFactory`
   - `domain.favourite` — `FavouriteBeaches` (its own aggregate: a beach-reference collection pending `User`
     linkage, not nested under `beach`)
+  - `domain.weatherreading` — `WeatherReading` (aggregate root) + `WeatherReadingFactory`. It is an
+    aggregate, **not** a value object: it has its own `WeatherReadingId` identity and identity-based
+    equality, and is a per-beach time series that grows without bound, so it references its `BeachId`
+    rather than being embedded in the `Beach` aggregate.
   - `domain.valueobject` — every value object, including ones that read as "beach concepts" but have no
-    identity and value-based equality: `BeachId`, `MunicipalityId`, `RegionId`, `Latitude`, `Longitude`,
-    `WindSpeed`, `WindDirection`, `Name`, `WeatherReading`, `NortadaStatus`
+    identity and value-based equality: `BeachId`, `MunicipalityId`, `RegionId`, `WeatherReadingId`,
+    `Latitude`, `Longitude`, `WindSpeed`, `WindDirection`, `Name`, `WeatherCode`, `WeatherCondition`,
+    `NortadaStatus`
   - `domain.service` — the domain's non-aggregate behavioral package: `NortadaDetectionService` (the entry
     point), `NortadaDetectionStrategy` (GoF Strategy seam), `SectorSpeedDetectionStrategy` (default rule,
     US010). Named to mirror `application.usecase` on the other side of the layer boundary — package name
@@ -103,19 +108,58 @@ with a detached `git worktree` at the tip commit rather than trusting the workin
   municipalities are a curated reference set whose codes come from outside this system. Consequently
   `MunicipalityFactory` exposes only `create` (no `rehydrate`), since there is no id-generation case to
   distinguish. Seeded in `V3__add_municipality.sql`.
+- **Stored raw values, derived categories** — a `WeatherReading` stores only raw observations; every
+  interpretation of them is computed on demand and **never persisted**, so the rules can change without a
+  data migration and no stored row can go stale against them:
+  - `NortadaStatus` is derived from a whole reading by `NortadaDetectionService` (US010, a domain service,
+    since the rule spans wind speed *and* direction).
+  - `WeatherCondition` is derived from the single stored `WeatherCode` by `WeatherCondition.fromWmoCode(...)`
+    (Information Expert — no service needed for a one-field mapping).
+  `WeatherCode` is the raw WMO `ww` code Open-Meteo returns. It validates the **full spec range 0–99**, while
+  `fromWmoCode` only recognises the ~27 codes Open-Meteo actually emits (0–3, 45/48, 51–57, 61–67, 71–77,
+  80–86, 95–99) and maps everything else — the 4–44 gap included — to `UNKNOWN`. That gap is Open-Meteo's
+  emitted-code table, not an oversight: a forecast model can't produce observer-only codes (haze, smoke,
+  duststorm). `UNKNOWN` is the deliberate safety net so a newly-added provider code degrades gracefully
+  instead of throwing mid-fetch.
 - **JPA data models are named `*DataModel`, not `*Entity`** (`infrastructure/persistence/datamodel/`, e.g.
   `BeachDataModel`, `RegionDataModel`, `MunicipalityDataModel`) — deliberately not "Entity", to avoid
-  clashing with the DDD sense of *entity* used for domain roots like `Beach`. They may use Lombok (`@Getter`)
-  and are translated to/from domain objects by the `*Mapper` classes; ORM annotations
-  (`@Entity`/`@Table`/`@Column`) never appear on a domain class.
+  clashing with the DDD sense of *entity* used for domain roots like `Beach`. They are translated to/from
+  domain objects by the `*Mapper` classes; ORM annotations (`@Entity`/`@Table`/`@Column`) never appear on a
+  domain class.
+- **Outside `domain/`, let Lombok generate constructors** — `@AllArgsConstructor` (plus `@Getter`) on
+  `web/dto` DTOs, and `@NoArgsConstructor(access = AccessLevel.PROTECTED)` + `@AllArgsConstructor` on
+  `infrastructure/persistence/datamodel` data models (JPA needs the no-arg one; `protected` keeps it out of
+  application use). Hand-write a constructor there only for a **subset-of-fields overload** Lombok can't
+  generate — e.g. `BeachResponse`'s reading-less 5-arg constructor, which just delegates `this(..., null)`.
+  Note Lombok's constructor is positional in **field-declaration order**, so reordering fields silently
+  reorders the constructor — keep field order stable. This never applies inside `domain/`, which stays
+  pure Java (see `docs/architecture.md` §3.1).
 - Double-backed value objects (`Latitude`, `Longitude`, `WindSpeed`, `WindDirection`) normalize `-0.0` to
   `0.0` in their constructors so `equals`/`hashCode` stay consistent for zero (`Double.compare` would
   otherwise treat them as different).
 - `backend/build.gradle` wires a JaCoCo coverage gate into `check`: every `com.nortadas.domain*` package must
-  hit **≥95% line and branch coverage** (currently 100% across all five domain packages — `beach`,
-  `municipality`, `region`, `favourite`, `valueobject`; add a new aggregate package to the gate's `includes`
-  list when you create one). Bootstrap/config classes (`NortadasApplication`, `config/**`) are excluded from
-  the gate.
+  hit **≥95% line and branch coverage** (currently 100% across all seven domain packages — `beach`,
+  `municipality`, `region`, `favourite`, `weatherreading`, `service`, `valueobject`; add a new domain package
+  to the gate's `includes` list when you create one — the list is explicit, so a package missing from it is
+  silently ungated). Bootstrap/config classes (`NortadasApplication`, `config/**`) are excluded from the gate,
+  and `application`/`web`/`infrastructure` are outside it entirely — cover those by behaviour (use-case unit
+  tests, `MockMvc` integration tests) rather than chasing a percentage.
+- **Web layer conventions** (`web/`, established with US011/US012):
+  - **Build every HAL link with `linkTo(methodOn(BeachController.class)...)`**, never by concatenating or
+    `.slash(...)`-ing a path. The method reference keeps the emitted URI tied to the real `@GetMapping`, so a
+    route change can't leave a stale link behind. A hand-built list-item `self` link already drifted out of
+    this once and was corrected.
+  - **No request DTOs** — both endpoints are `GET`, so inputs bind straight to `@RequestParam`/`@PathVariable`
+    (there is no `@RequestBody` anywhere yet). Add request DTOs, with validation annotations, when write
+    endpoints arrive.
+  - **Errors are RFC-7807 `ProblemDetail`s** returned from `web/error/ApiExceptionHandler`
+    (`@RestControllerAdvice`) — e.g. `InvalidPaginationException` → `400`, `BeachNotFoundException` → `404`,
+    each with a stable `type` URI under `https://api.nortada.pt/problems/`.
+  - **Pagination crosses the layer boundary as the framework-free `application.usecase.PageResult<T>`**, not
+    Spring Data's `Page`/`Pageable` — the application layer stays free of persistence-framework types
+    (`docs/architecture.md` §1). The web layer converts it to a HATEOAS `PagedModel`; slicing is currently
+    in-memory over `BeachRepositoryPort.findAll()`, fine for a small fixed catalogue and documented to
+    revisit with a paged port method if it grows.
 - `docs/OOA/nortada-OOA.puml` (analysis) and `docs/OOD/nortada-OOD.puml` (design, with operations/visibility
   and the full application/infrastructure/web class set) hold the PlantUML diagrams behind the architecture;
   `docs/OOD/sequences/` has the key interaction flows; `docs/OOD/api-contract.md` defines the REST Level 3
