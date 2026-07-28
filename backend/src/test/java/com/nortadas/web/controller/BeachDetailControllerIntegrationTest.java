@@ -78,6 +78,9 @@ class BeachDetailControllerIntegrationTest {
         BeachId espinho = new BeachId(UUID.fromString(ESPINHO_ID));
         // 340 deg is in-sector (N-NNW gate); 30 km/h grades to MODERATE.
         // 61 is the WMO code for rain, so the derived condition is RAIN.
+        // Air (18.0) and water (16.0) temperatures are deliberately distinct
+        // (and both non-zero) so the JSON assertions below would fail if the
+        // mapper wired the wrong field or swapped the two (issue #65).
         weatherReadingRepository.save(WeatherReadingFactory.create(
                 espinho,
                 new WindSpeed(30.0),
@@ -96,6 +99,7 @@ class BeachDetailControllerIntegrationTest {
                 .andExpect(jsonPath("$.reading.windSpeed", is(30.0)))
                 .andExpect(jsonPath("$.reading.windDirection", is(340.0)))
                 .andExpect(jsonPath("$.reading.temperature", is(18.0)))
+                .andExpect(jsonPath("$.reading.waterTemperature", is(16.0)))
                 .andExpect(jsonPath("$.reading.weatherCode", is(61)))
                 .andExpect(jsonPath("$.reading.fetchedAt", is("2026-07-20T09:00:00Z")));
     }
