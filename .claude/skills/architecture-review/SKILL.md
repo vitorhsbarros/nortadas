@@ -1,6 +1,7 @@
 ---
 name: architecture-review
 description: Reviews a GitHub pull request or the current working diff against this project's architecture rules in docs/architecture.md — Clean Architecture layering, the domain/entity/DTO three-model separation, SOLID, GRASP, expected GoF patterns, ORM/persistence boundaries, and package placement. Use this whenever the user asks to review a PR, review a diff, or check whether a change follows the architecture, Clean Architecture, SOLID, or GRASP conventions for the nortadas backend — e.g. "review PR #12", "check this diff against our architecture", "does this class belong in this package", "/architecture-review". Trigger even when the user doesn't name docs/architecture.md directly or say "architecture" explicitly — any request to validate a change's structure, layering, or design against this project's conventions qualifies. This is a conformance/design review, not a correctness or security audit — for those use /code-review or /security-review instead (or alongside this one).
+effort: high
 ---
 
 # architecture-review

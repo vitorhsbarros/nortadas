@@ -1,6 +1,8 @@
 ---
 name: commit-message
 description: Enforces this project's fixed commit message format — "<type>: <message>, <ref-keyword> #<issue_number>" — whenever a commit is about to be created in the nortadas repo. Use this any time the user asks to commit changes, create a git commit, or write/check a commit message here, or whenever you (Claude) are about to run `git commit` as part of finishing some other task in this repo. Every commit in this project must reference a GitHub issue — this skill also covers finding or confirming that issue number before committing.
+model: haiku
+effort: high
 ---
 
 # commit-message
