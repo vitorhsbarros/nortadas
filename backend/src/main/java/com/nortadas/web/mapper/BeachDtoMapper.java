@@ -6,8 +6,10 @@ import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 import com.nortadas.application.usecase.BeachStatusView;
 import com.nortadas.application.usecase.PageResult;
 import com.nortadas.domain.beach.Beach;
+import com.nortadas.domain.weatherreading.WeatherReading;
 import com.nortadas.web.controller.BeachController;
 import com.nortadas.web.dto.BeachResponse;
+import com.nortadas.web.dto.WeatherReadingResponse;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.hateoas.IanaLinkRelations;
@@ -46,6 +48,43 @@ public class BeachDtoMapper {
         response.add(linkTo(BeachController.class).slash(id.toString()).withSelfRel());
         response.add(linkTo(BeachController.class).withRel(IanaLinkRelations.COLLECTION));
         return response;
+    }
+
+    /**
+     * Maps a {@link BeachStatusView} to the HAL detail resource returned by
+     * {@code GET /api/beaches/{id}} (US012): the same identity/name/region/status
+     * as a list item, plus the optional {@code reading} block when the beach has a
+     * latest stored reading, and {@code self} / {@code collection} links.
+     *
+     * <p>Unlike {@link #toListItem(BeachStatusView)}, the {@code self} link is
+     * built from the now-existing {@link BeachController#detail(UUID)} method so
+     * the URI stays coupled to the mapping rather than a hand-written path.
+     */
+    public BeachResponse toDetail(BeachStatusView view) {
+        Beach beach = view.beach();
+        UUID id = beach.getBeachId().getValue();
+
+        WeatherReadingResponse reading = view.latestReading()
+                .map(this::toReadingResponse)
+                .orElse(null);
+
+        BeachResponse response = new BeachResponse(
+                id,
+                beach.getName().getValue(),
+                beach.getRegion().getName().getValue(),
+                view.status().name(),
+                reading);
+        response.add(linkTo(methodOn(BeachController.class).detail(id)).withSelfRel());
+        response.add(linkTo(BeachController.class).withRel(IanaLinkRelations.COLLECTION));
+        return response;
+    }
+
+    private WeatherReadingResponse toReadingResponse(WeatherReading reading) {
+        return new WeatherReadingResponse(
+                reading.getWindSpeed().getKmPerHour(),
+                reading.getWindDirection().getDegrees(),
+                reading.getTemperatureCelsius(),
+                reading.getFetchedAt().toString());
     }
 
     /**
