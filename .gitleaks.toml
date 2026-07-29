@@ -9,16 +9,32 @@ useDefault = true
 
 [allowlist]
 description = "Global allowlist"
+
+# Path patterns are anchored to real directory and filename boundaries on purpose.
+# These were previously bare substrings ('''.*test.*''' and '''.*spec.*'''), which
+# exempted any path merely *containing* those letters — LatestConfig.java,
+# contest-data.properties, specification.md, inspector.ts — from secret scanning
+# entirely. Verified against gitleaks 8.30.1: a committed token in
+# LatestConfig.properties reported "no leaks found" under the old patterns and is
+# caught under these.
 paths = [
-    # Test files - may contain dummy secrets for testing purposes
-    '''.*test.*''',
-    '''.*spec.*''',
-    # Gitleaks config itself
-    '''.gitleaks.toml''',
+    # Java test sources (backend/src/test/...) — fixtures legitimately carry
+    # dummy credentials.
+    '''(^|/)src/test/''',
+    # JS/TS tests for the mobile app (US014, #70): __tests__ directories and the
+    # .test./.spec. filename convention.
+    '''(^|/)__tests__/''',
+    '''\.(test|spec)\.[jt]sx?$''',
+    # The gitleaks config itself, which necessarily contains rule-like patterns.
+    '''(^|/)\.gitleaks\.toml$''',
 ]
+
+# Anchored for the same reason: unanchored '''EXAMPLE_.*''' exempted any secret
+# merely containing "EXAMPLE_" anywhere within it, not just placeholders starting
+# with it.
 regexes = [
-    # Ignore placeholder values commonly used in docs/examples
-    '''EXAMPLE_.*''',
-    '''YOUR_.*_HERE''',
-    '''<.*>''',
+    # Placeholder values commonly used in docs and examples.
+    '''^EXAMPLE_''',
+    '''^YOUR_.*_HERE$''',
+    '''^<.*>$''',
 ]
