@@ -62,8 +62,18 @@ outside `domain.beach`; go through `BeachFactory.create(...)`/`.rehydrate(...)` 
 ## CI (`.github/workflows/ci-pipeline.yml`)
 
 Runs on pull requests with four jobs; three are implemented and blocking, `sca` is still a placeholder:
-- `secret-scan` — Gitleaks, configured via `.gitleaks.toml` (allowlists test/spec files and common placeholder
-  patterns like `EXAMPLE_*`, `YOUR_*_HERE`)
+- `secret-scan` — the Gitleaks **CLI**, pinned to 8.30.1 and run directly, scanning the **full commit
+  history** (`gitleaks git .`) rather than just the PR's commit range: a secret is leaked the moment it is
+  committed, even if a later commit removes it. `--redact` keeps found values out of the logs and the SARIF,
+  which uploads to code scanning under the `gitleaks` category. Needs `fetch-depth: 0`.
+  Deliberately **not** `gitleaks/gitleaks-action@v2` — that action has no `args` input, so the previous
+  `args: detect --source=. --no-git` was silently discarded on every run while the job still reported green;
+  it also requires a paid `GITLEAKS_LICENSE` for org-owned repos. (`detect` is no longer a gitleaks command
+  either — 8.x splits it into `git` and `dir`.)
+  `.gitleaks.toml` allowlist paths are **anchored** (`(^|/)src/test/`, `\.(test|spec)\.[jt]sx?$`) on purpose:
+  they used to be bare substrings (`.*test.*`), which exempted any path merely containing those letters —
+  `LatestConfig.java`, `contest-data.properties`, `inspector.ts` — from secret scanning entirely. Don't
+  loosen them back to substrings.
 - `sast-semgrep` — Semgrep OSS CLI (no `SEMGREP_APP_TOKEN`), blocking on `ERROR`-severity findings only,
   with SARIF uploaded to code scanning for inline PR annotations. Two scans: the backend against
   `p/java` + `p/security-audit` + `p/owasp-top-ten`, and the mobile app against `p/typescript` +

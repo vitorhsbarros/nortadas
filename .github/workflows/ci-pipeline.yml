@@ -7,19 +7,79 @@ jobs:
   secret-scan:
     name: Secret Scanning (Gitleaks)
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
+          # Full history — the scan below covers every commit, not just this PR's
+          # range, so it needs the whole graph.
           fetch-depth: 0
 
-      - name: Run Gitleaks
-        uses: gitleaks/gitleaks-action@v2
+      # Runs the gitleaks OSS CLI directly instead of gitleaks/gitleaks-action@v2,
+      # for the same reasons the Semgrep job runs its CLI standalone: full control
+      # over the scan mode, a pinned version, and no dependency on GITLEAKS_LICENSE
+      # (which the action requires for organization-owned repos — this repo is
+      # personal today, but that would become a blocker on transfer).
+      #
+      # The action was configured with `with: args: detect --source=. --no-git`,
+      # which never took effect: v2 has no `args` input, so it was discarded on
+      # every run, surfacing only as an "Unexpected input(s) 'args'" annotation on
+      # a job that still reported green. What actually ran was a commit-range scan
+      # (`--log-opts=--no-merges --first-parent <base>^..<head>`), not the intended
+      # working-tree scan. `detect` is also no longer a gitleaks command at all —
+      # 8.x splits it into `git` (history) and `dir` (filesystem).
+      - name: Install Gitleaks
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GITLEAKS_ENABLE_UPLOAD_ARTIFACT: true
+          # Pinned rather than "latest" so a new release cannot change the rules
+          # under a passing gate, and so the version CI runs is the one changes are
+          # tested against locally.
+          GITLEAKS_VERSION: 8.30.1
+        run: |
+          curl -sSfL -o gitleaks.tar.gz \
+            "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
+          tar -xzf gitleaks.tar.gz gitleaks
+          ./gitleaks version
+
+      # Scans the entire commit history rather than this PR's range. A secret is
+      # leaked the moment it is committed, even if a later commit removes it, and a
+      # range scan cannot see anything introduced before the gate existed. The full
+      # history takes well under a second at this repo's size, so scanning less
+      # buys nothing.
+      #
+      # --redact keeps discovered secret values out of the logs and the SARIF: this
+      # report is uploaded to code scanning, and a gate that publishes the very
+      # secret it found would be worse than no gate.
+      #
+      # continue-on-error plus the enforce step below mirrors the Semgrep job — a
+      # non-zero exit on findings would otherwise skip the SARIF upload on exactly
+      # the runs where the annotations matter most.
+      - name: Scan full git history for secrets
+        id: gitleaks
+        continue-on-error: true
+        run: |
+          ./gitleaks git . \
+            --config .gitleaks.toml \
+            --report-format sarif \
+            --report-path gitleaks.sarif \
+            --redact \
+            --no-banner
+
+      - name: Upload Gitleaks SARIF to GitHub code scanning
+        if: always()
+        uses: github/codeql-action/upload-sarif@v4
         with:
-          args: detect --source=. --no-git
+          sarif_file: gitleaks.sarif
+          category: gitleaks
+
+      - name: Enforce Gitleaks result
+        if: steps.gitleaks.outcome == 'failure'
+        run: |
+          echo "Gitleaks found secrets in the repository history — see the Security tab."
+          echo "A secret committed at any point is compromised: rotate it first, then remove it."
+          exit 1
 
   sast-semgrep:
     name: SAST (Semgrep)
